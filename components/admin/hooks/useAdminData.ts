@@ -6,30 +6,22 @@ export function useAdminData(showToast: (msg: string, type: 'info' | 'success' |
   const [auth, setAuth] = useState({ isAuthenticated: false, adminUser: null as any, isLoading: true });
   const [ratings, setRatings] = useState<Record<string, { sum: number, count: number }>>({});
 
-  const getAuthHeaders = () => {
+  // 1. Explicitly return Record<string, string> to satisfy TypeScript
+  const getAuthHeaders = (): Record<string, string> => {
     if (typeof window === 'undefined') return {};
     const token = localStorage.getItem('prinz_token');
     return token ? { "Authorization": `Bearer ${token}` } : {};
   };
-  
-  const headers = getAuthHeaders();
-
-// This ensures we only pass the header if it actually exists
-const sanitizedHeaders: Record<string, string> = {};
-if (headers.Authorization) {
-  sanitizedHeaders['Authorization'] = headers.Authorization;
-}
-
-const fetchConfig: RequestInit = { 
-  headers: sanitizedHeaders, // Use the cleaned object
-  cache: 'no-store', 
-  credentials: 'include' 
-};
-  
 
   const fetchAll = async () => {
     const headers = getAuthHeaders();
-    const fetchConfig: RequestInit = { headers, cache: 'no-store', credentials: 'include' };
+    
+    // 2. Cast the headers explicitly to ensure RequestInit accepts them
+    const fetchConfig: RequestInit = { 
+      headers: headers as Record<string, string>, 
+      cache: 'no-store', 
+      credentials: 'include' 
+    };
 
     try {
       const [eqRes, usersRes, rentRes, opRes, inqRes] = await Promise.all([
@@ -70,7 +62,6 @@ const fetchConfig: RequestInit = {
   };
 
   useEffect(() => {
-    // 🛡️ FIX 4: No longer looking for 'prinz_token' in localStorage
     const savedAdmin = localStorage.getItem('prinz_admin_user');
     
     if (savedAdmin && savedAdmin !== "undefined") {
