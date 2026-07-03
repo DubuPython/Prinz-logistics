@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { PackageSearch, Activity, FileText, Settings, Users, PlusCircle, Settings2, HardHat, Star, Banknote, Edit3, Trash2 } from "lucide-react";
+import { PackageSearch, Activity, FileText, Settings, Users, PlusCircle, Settings2, HardHat, Star, Banknote, Edit3, Trash2, UploadCloud } from "lucide-react";
 import { API_URL, getAuthHeaders } from "../../lib/utils";
 import SupplierOrderModal from "../SupplierOrderModal";
 
@@ -19,15 +19,18 @@ export default function SupplierDashboardView({
 }: any) {
   const [activeTab, setActiveTab] = useState('OVERVIEW'); 
   const [managingOrder, setManagingOrder] = useState<any>(null);
+  
+  // New States for Document Upload
+  const [isUploading, setIsUploading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  // Data Filtering
+  // Data Filtering (Your existing logic)
   const myOrders = rentalsList.filter((r: any) => r.supplier?.id === user.id);
   const activeOrders = myOrders.filter((r: any) => r.status !== 'COMPLETED' && r.status !== 'CANCELLED');
   const historyOrders = myOrders.filter((r: any) => r.status === 'COMPLETED' || r.status === 'CANCELLED');
   const myFleet = equipmentList.filter((e: any) => e.supplier?.id === user.id);
   const myOperators = operatorsList.filter((op: any) => op.supplier?.id === user.id);
 
-  // Analytics Engine Math
   const completedOrders = historyOrders.filter((r: any) => r.status === 'COMPLETED');
   const totalRevenue = completedOrders.reduce((sum: number, r: any) => sum + Number(r.totalCost || 0), 0);
   const ratedOrders = completedOrders.filter((r: any) => r.supplierRating > 0);
@@ -56,11 +59,91 @@ export default function SupplierDashboardView({
     { id: 'OPERATORS', icon: <Users size={16} />, label: 'Operators' }
   ];
 
+ // ==========================================
+  // DOCUMENT UPLOAD HANDLER
+  // Converts image to Base64 and sends to backend
   // ==========================================
-  // THE VERIFICATION BLOCKER
-  // Intercepts the render if the user is not VERIFIED
+  const handleDocumentSubmit = async () => {
+    if (!selectedFile) return showToast("Please select a document first.", "error");
+    setIsUploading(true);
+
+    try {
+      // 1. Convert file to Base64 string for easy database storage
+      const reader = new FileReader();
+      reader.readAsDataURL(selectedFile);
+      reader.onloadend = async () => {
+        const base64String = reader.result;
+
+        // 2. Send the document string to your users endpoint
+        const res = await fetch(`${API_URL}/users/${user.id}`, {
+          method: 'PATCH',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ documentUrl: base64String })
+        });
+
+        if (!res.ok) throw new Error("Upload failed");
+        
+        showToast("Document submitted successfully!", "success");
+        onDataChange(); // Refreshes the user data
+      };
+    } catch (error) {
+      showToast("Error submitting document.", "error");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // ==========================================
+  // THE VERIFICATION BLOCKER (UPGRADED)
   // ==========================================
   if (user?.status === 'PENDING_DOCS') {
+    
+    // STATE 1: If they HAVEN'T uploaded a document yet, show the upload form
+    if (!user?.documentUrl) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-[75vh] text-center px-4 animate-fade-in">
+          <div className="p-10 bg-white dark:bg-gray-900 rounded-3xl shadow-xl border border-gray-200 dark:border-gray-800 max-w-lg w-full relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-2 bg-orange-500"></div>
+            
+            <h2 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-widest mb-2">Action Required</h2>
+            <p className="text-gray-600 dark:text-gray-400 font-medium mb-8">
+              To activate your supplier account, please upload a clear photo or scan of your <span className="font-bold text-orange-600">DTI, SEC, or Mayor's Business Permit</span>.
+            </p>
+
+            <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl p-8 mb-6 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition">
+              <input 
+                type="file" 
+                accept="image/*,.pdf"
+                id="doc-upload"
+                className="hidden"
+                onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+              />
+              <label htmlFor="doc-upload" className="cursor-pointer flex flex-col items-center">
+                <UploadCloud className={`w-12 h-12 mb-3 ${selectedFile ? 'text-green-500' : 'text-gray-400'}`} />
+                <span className="font-bold text-gray-900 dark:text-white">
+                  {selectedFile ? selectedFile.name : "Click to select document"}
+                </span>
+                <span className="text-xs text-gray-500 mt-2">Supports JPG, PNG, or PDF</span>
+              </label>
+            </div>
+
+            <button 
+              onClick={handleDocumentSubmit}
+              disabled={isUploading || !selectedFile}
+              className={`w-full py-3 rounded-xl font-black uppercase tracking-widest transition ${
+                isUploading || !selectedFile 
+                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
+                  : 'bg-orange-600 hover:bg-orange-700 text-white shadow-lg'
+              }`}
+            >
+              {isUploading ? 'Uploading...' : 'Submit Document'}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // STATE 2: If they HAVE uploaded a document, show the "Under Review" screen
     return (
       <div className="flex flex-col items-center justify-center min-h-[75vh] text-center px-4 animate-fade-in">
         <div className="p-10 bg-white dark:bg-gray-900 rounded-3xl shadow-xl border border-gray-200 dark:border-gray-800 max-w-lg relative overflow-hidden">
@@ -70,11 +153,11 @@ export default function SupplierDashboardView({
           </div>
           <h2 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-widest mb-4">Account Under Review</h2>
           <p className="text-gray-600 dark:text-gray-400 font-medium leading-relaxed mb-6">
-            Your supplier registration has been successfully received and is currently marked as <span className="font-black text-orange-600 bg-orange-50 dark:bg-orange-900/30 px-2 py-1 rounded">PENDING_DOCS</span>. 
+            Your business documents have been received and your account is currently <span className="font-black text-orange-600 bg-orange-50 dark:bg-orange-900/30 px-2 py-1 rounded">PENDING_DOCS</span>. 
           </p>
           <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-100 dark:border-gray-800">
             <p className="text-xs text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest leading-relaxed">
-              An administrator will review your account shortly. You will gain full access to your platform analytics, fleet dashboard, and operator management once verified.
+              An administrator will review your documents shortly. You will gain full access to your platform analytics, fleet dashboard, and operator management once verified.
             </p>
           </div>
         </div>
