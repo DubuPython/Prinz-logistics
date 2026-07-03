@@ -1,119 +1,156 @@
-"use client";
-import React from "react";
-import { ShieldAlert, User as UserIcon } from "lucide-react";
+import React, { useState, useEffect } from 'react';
+import { Eye, X, FileText } from 'lucide-react'; // Added icons for the UI
 
-export default function AccessMgmtView({ usersList = [], apiAction, currentUser }: any) {
+export default function AccessMgmtView() {
+  const [users, setUsers] = useState([]);
   
-  // 🛡️ CRITICAL FIX: The Safe Role Changer
-  const handleRoleChange = async (userId: string, newRole: string) => {
-    // 1. Force exact uppercase so PostgreSQL ENUM doesn't violently reject it
-    const safeRole = newRole.toUpperCase();
-    
-    // 2. Use the hook's apiAction to cleanly send the PATCH request
-    await apiAction(
-      `/users/${userId}`,
-      'PATCH',
-      { role: safeRole },
-      `User role securely updated to ${safeRole}.`
-    );
+  // NEW: State to track which document is currently being viewed
+  const [viewingDoc, setViewingDoc] = useState<string | null>(null);
+
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users`);
+      if (res.ok) {
+        const data = await res.json();
+        setUsers(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch users", error);
+    }
   };
 
-  // Color-coded badges for easy visual scanning
-  const getRoleBadge = (role: string) => {
-    const r = role?.toUpperCase() || 'CLIENT';
-    if (r === 'SUPERADMIN') return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400";
-    if (r === 'ADMIN') return "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400";
-    if (r === 'SUPPLIER') return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400";
-    return "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300";
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const handleVerifySupplier = async (userId: string) => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${userId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "VERIFIED" }) 
+      });
+
+      if (!response.ok) throw new Error("Failed to verify supplier");
+      
+      alert("Supplier Verified Successfully!");
+      setViewingDoc(null); // Close the document viewer if it's open
+      fetchUsers(); // Refresh the table
+      
+    } catch (error) {
+      console.error(error);
+      alert("Error verifying supplier.");
+    }
   };
 
   return (
-    <div className="p-8 animate-fade-in">
-      {/* Header Section */}
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-3">
-          <ShieldAlert className="text-orange-600" size={28} />
-          <h2 className="text-2xl font-black text-gray-900 dark:text-white tracking-widest uppercase">
-            Platform Access Management
-          </h2>
-        </div>
-        <div className="bg-[#111827] dark:bg-gray-800 text-white px-4 py-2 rounded-xl text-sm font-black shadow-sm tracking-widest uppercase">
-          {usersList.length} Total Users
-        </div>
+    <div className="w-full space-y-6 animate-fade-in">
+      <div className="flex items-center space-x-3">
+        <h1 className="text-2xl font-black text-gray-900 tracking-wider uppercase">Access Management</h1>
       </div>
-      <p className="text-gray-500 font-medium mb-8">Manage system users, privileges, and platform access.</p>
 
-      {/* Table Section */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm">
-        <table className="w-full text-sm text-left">
-          <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 font-black text-[10px] uppercase tracking-widest">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <table className="w-full text-left text-sm text-gray-600">
+          <thead className="bg-gray-50/50 text-xs uppercase font-bold text-gray-400 border-b">
             <tr>
-              <th className="px-6 py-4">User</th>
-              <th className="px-6 py-4 text-center">Current Role</th>
+              <th className="px-6 py-4">User Name</th>
+              <th className="px-6 py-4">Email</th>
+              <th className="px-6 py-4">Role</th>
+              <th className="px-6 py-4">Status</th>
               <th className="px-6 py-4 text-right">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-            {usersList.map((user: any) => {
-              // 🛡️ IMMUTABILITY CHECK: 
-              // Prevent Superadmins from accidentally demoting themselves or other Superadmins from the UI.
-              const isImmutable = user.role === 'SUPERADMIN' || user.id === currentUser?.id;
+          <tbody className="divide-y divide-gray-100">
+            {users.map((user: any) => (
+              <tr key={user.id} className="hover:bg-gray-50 transition-colors">
+                <td className="px-6 py-4 font-bold text-gray-900">{user.firstName} {user.lastName}</td>
+                <td className="px-6 py-4">{user.email}</td>
+                <td className="px-6 py-4 font-semibold">{user.role}</td>
+                <td className="px-6 py-4">
+                  {user.status === 'PENDING_DOCS' ? (
+                    <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-bold">PENDING DOCS</span>
+                  ) : (
+                    <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-bold">VERIFIED</span>
+                  )}
+                </td>
+                <td className="px-6 py-4 text-right space-x-2 flex justify-end items-center gap-2">
+                  
+                  {/* NEW: VIEW DOCUMENT BUTTON */}
+                  {user.documentUrl && user.status === 'PENDING_DOCS' && (
+                    <button 
+                      onClick={() => setViewingDoc(user.documentUrl)}
+                      className="flex items-center gap-1 px-3 py-2 bg-gray-100 text-gray-700 text-xs font-bold rounded hover:bg-gray-200 transition-colors"
+                      title="View Uploaded Document"
+                    >
+                      <Eye size={14} /> View Doc
+                    </button>
+                  )}
 
-              return (
-                <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition">
-                  {/* User Info Column */}
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400 shrink-0">
-                        <UserIcon size={18} />
-                      </div>
-                      <div>
-                        <div className="font-bold text-gray-900 dark:text-white text-sm">
-                          {user.firstName} {user.lastName || ''}
-                        </div>
-                        <div className="text-xs text-gray-500 font-medium">{user.email}</div>
-                      </div>
-                    </div>
-                  </td>
+                  {/* VERIFY BUTTON */}
+                  {user.role === 'SUPPLIER' && user.status === 'PENDING_DOCS' && (
+                    <button 
+                      onClick={() => handleVerifySupplier(user.id)}
+                      className="px-4 py-2 bg-orange-600 text-white text-xs font-bold rounded hover:bg-orange-700 transition-colors"
+                    >
+                      VERIFY
+                    </button>
+                  )}
 
-                  {/* Current Role Badge Column */}
-                  <td className="px-6 py-4 text-center">
-                    <span className={`px-3 py-1 text-[10px] font-black rounded-full uppercase tracking-widest ${getRoleBadge(user.role)}`}>
-                      {user.role || 'CLIENT'}
-                    </span>
-                  </td>
-
-                  {/* Actions / Dropdown Column */}
-                  <td className="px-6 py-4 text-right">
-                    {isImmutable ? (
-                      <span className="text-xs font-black text-gray-400 italic px-3 py-1 mr-4">Immutable</span>
-                    ) : (
-                      <select
-                        className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-widest outline-none cursor-pointer focus:ring-2 focus:ring-orange-500 transition"
-                        value={user.role?.toUpperCase() || 'CLIENT'}
-                        onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                      >
-                        <option value="CLIENT">CLIENT</option>
-                        <option value="SUPPLIER">SUPPLIER</option>
-                        <option value="ADMIN">ADMIN</option>
-                      </select>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-
-            {/* Empty State Fallback */}
-            {usersList.length === 0 && (
-              <tr>
-                <td colSpan={3} className="px-6 py-12 text-center text-gray-500 font-medium">
-                  No system users found in the database.
                 </td>
               </tr>
+            ))}
+            {users.length === 0 && (
+              <tr><td colSpan={5} className="px-6 py-8 text-center text-gray-500">No users found.</td></tr>
             )}
           </tbody>
         </table>
       </div>
+
+      {/* ========================================== */}
+      {/* DOCUMENT VIEWER MODAL */}
+      {/* ========================================== */}
+      {viewingDoc && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+            
+            {/* Modal Header */}
+            <div className="flex justify-between items-center p-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
+              <div className="flex items-center gap-2 text-gray-700 dark:text-gray-200">
+                <FileText size={20} className="text-orange-600" />
+                <h3 className="font-black uppercase tracking-widest text-sm">Supplier Document Review</h3>
+              </div>
+              <button 
+                onClick={() => setViewingDoc(null)} 
+                className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            {/* Modal Body (The Image) */}
+            <div className="p-4 overflow-auto flex justify-center bg-gray-100 dark:bg-gray-950">
+              {viewingDoc.includes('application/pdf') ? (
+                <iframe src={viewingDoc} className="w-full h-[60vh] rounded border border-gray-200" title="PDF Document" />
+              ) : (
+                <img src={viewingDoc} alt="Supplier Document" className="max-w-full max-h-[60vh] object-contain rounded shadow-sm" />
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-800 flex justify-end">
+              <button 
+                onClick={() => setViewingDoc(null)}
+                className="px-6 py-2 bg-gray-200 text-gray-800 font-bold text-sm uppercase tracking-widest rounded-lg hover:bg-gray-300 transition"
+              >
+                Close Viewer
+              </button>
+            </div>
+            
+          </div>
+        </div>
+      )}
+      {/* ========================================== */}
+
     </div>
   );
 }
