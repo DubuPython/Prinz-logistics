@@ -1,190 +1,130 @@
-import React, { useMemo } from "react";
-import { PieChart, TrendingUp, Users, Truck, DollarSign, Activity, Star, Trophy } from "lucide-react";
+"use client";
+import React from "react";
+import { Activity, Users, Truck, Banknote, Star, Trophy, TrendingUp } from "lucide-react";
 
-export default function AnalyticsView({ orders, suppliers, clients, ratings }: any) {
+export default function AnalyticsView({ orders = [], suppliers = [], clients = [], ratings = [] }: any) {
   
-  // SECURE CALCULATION: Only registers COMPLETED orders in the global revenue
-  const stats = useMemo(() => {
-    const revenue = orders.filter((o:any)=>o.status === 'COMPLETED').reduce((s:number, o:any) => s + Number(o.totalCost), 0);
-    const completed = orders.filter((o:any)=>o.status === 'COMPLETED').length;
-    const active = orders.filter((o:any)=>o.status !== 'COMPLETED' && o.status !== 'CANCELLED').length;
-    return { revenue, completed, active };
-  }, [orders]);
+  const activeRentals = orders.filter((r: any) => r.status !== 'COMPLETED' && r.status !== 'CANCELLED');
+  const completedRentals = orders.filter((r: any) => r.status === 'COMPLETED');
+  
+  const grossRevenue = completedRentals.reduce((sum: number, r: any) => sum + Number(r.totalCost || 0), 0);
 
-  // SECURE CALCULATION: Ranks top suppliers strictly on COMPLETED orders
-  const topSuppliers = useMemo(() => {
-    const revMap: any = {};
-    orders.filter((o:any)=>o.status === 'COMPLETED').forEach((o:any) => {
-      const supId = o.supplier?.id || 'DELETED_SUPPLIER';
-      const supName = o.supplier?.companyName || o.supplier?.firstName || 'Deleted Supplier';
-      if(!revMap[supId]) revMap[supId] = { id: supId, name: supName, rev: 0, count: 0 };
-      revMap[supId].rev += Number(o.totalCost);
-      revMap[supId].count += 1;
-    });
-    return Object.values(revMap).sort((a:any, b:any) => b.rev - a.rev).slice(0, 5);
-  }, [orders]);
+  const ratedOrders = completedRentals.filter((r: any) => r.supplierRating > 0);
+  const avgPlatformRating = ratedOrders.length > 0 
+    ? (ratedOrders.reduce((sum: number, r: any) => sum + Number(r.supplierRating), 0) / ratedOrders.length).toFixed(1) 
+    : '0.0';
 
-  // SECURE CALCULATION: Ranks top clients strictly on COMPLETED orders
-  const topClients = useMemo(() => {
-    const spendMap: any = {};
-    orders.filter((o:any)=>o.status === 'COMPLETED').forEach((o:any) => {
-      const clientId = o.client?.id || 'DELETED_CLIENT';
-      const clientName = o.client?.firstName ? `${o.client.firstName} ${o.client.lastName || ''}` : 'Deleted Client';
-      if(!spendMap[clientId]) spendMap[clientId] = { id: clientId, name: clientName, spent: 0, count: 0 };
-      spendMap[clientId].spent += Number(o.totalCost);
-      spendMap[clientId].count += 1;
-    });
-    return Object.values(spendMap).sort((a:any, b:any) => b.spent - a.spent).slice(0, 5);
-  }, [orders]);
+  const supplierStats = suppliers.map((supplier: any) => {
+    const supOrders = completedRentals.filter((r: any) => r.supplier?.id === supplier.id);
+    const revenue = supOrders.reduce((sum: number, r: any) => sum + Number(r.totalCost || 0), 0);
+    const sRated = supOrders.filter((r: any) => r.supplierRating > 0);
+    const rating = sRated.length > 0 
+      ? (sRated.reduce((sum: number, r: any) => sum + Number(r.supplierRating), 0) / sRated.length).toFixed(1) 
+      : '0.0';
+    return { ...supplier, totalRevenue: revenue, orderCount: supOrders.length, avgRating: rating };
+  }).sort((a: any, b: any) => b.totalRevenue - a.totalRevenue).slice(0, 5); 
 
-  const getRating = (supplierId: string) => {
-    if (!ratings || !ratings[supplierId] || ratings[supplierId].count === 0) return "0.0";
-    return (ratings[supplierId].sum / ratings[supplierId].count).toFixed(1);
-  };
-
-  const globalSatisfaction = useMemo(() => {
-    let totalSum = 0;
-    let totalCount = 0;
-    Object.values(ratings || {}).forEach((r: any) => {
-      if (r.sum && r.count) {
-        totalSum += r.sum;
-        totalCount += r.count;
-      }
-    });
-    return totalCount === 0 ? 0 : Number((totalSum / totalCount).toFixed(1));
-  }, [ratings]);
+  const clientStats = clients.map((client: any) => {
+    const cliOrders = completedRentals.filter((r: any) => r.client?.id === client.id);
+    const spent = cliOrders.reduce((sum: number, r: any) => sum + Number(r.totalCost || 0), 0);
+    return { ...client, totalSpent: spent, orderCount: cliOrders.length };
+  }).sort((a: any, b: any) => b.totalSpent - a.totalSpent).slice(0, 5); 
 
   return (
-    <div className="animate-fade-in max-w-6xl mx-auto space-y-8">
-      
-      <div className="flex items-center gap-4 border-b border-gray-200 pb-6 mb-8">
-        <div className="p-4 bg-orange-100 rounded-2xl">
-          <PieChart className="text-orange-600" size={32} />
+    <div className="p-8 animate-fade-in">
+      <div className="flex items-center gap-3 mb-8">
+        <Activity className="text-orange-600" size={28} />
+        <h2 className="text-2xl font-black text-gray-900 uppercase tracking-widest">Platform Analytics</h2>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+           <div className="w-10 h-10 rounded-xl bg-green-100 text-green-600 flex items-center justify-center mb-4"><Banknote size={20}/></div>
+           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Gross Revenue</p>
+           <p className="text-2xl font-black text-gray-900 mt-1">₱{grossRevenue.toLocaleString()}</p>
         </div>
+        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+           <div className="w-10 h-10 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center mb-4"><Truck size={20}/></div>
+           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Active Deliveries</p>
+           <p className="text-2xl font-black text-gray-900 mt-1">{activeRentals.length}</p>
+        </div>
+        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+           <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center mb-4"><Users size={20}/></div>
+           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Verified Clients</p>
+           <p className="text-2xl font-black text-gray-900 mt-1">{clients.length}</p>
+        </div>
+        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+           <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center mb-4"><Truck size={20}/></div>
+           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Suppliers</p>
+           <p className="text-2xl font-black text-gray-900 mt-1">{suppliers.length}</p>
+        </div>
+      </div>
+
+      <div className="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
         <div>
-           <h2 className="text-3xl font-black uppercase tracking-tight text-gray-900">Platform Analytics</h2>
-           <p className="text-gray-500 font-bold text-sm">Real-time overview of marketplace performance</p>
+          <h3 className="text-lg font-black text-gray-900 uppercase tracking-widest">Platform Satisfaction Score</h3>
+          <p className="text-sm text-gray-500 font-medium mt-1">Aggregated from verified client post-rental reviews</p>
         </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-200 hover:shadow-md transition">
-           <div className="w-12 h-12 bg-green-100 text-green-600 rounded-2xl flex items-center justify-center mb-4"><DollarSign size={24}/></div>
-           <p className="text-xs font-black text-gray-500 uppercase tracking-widest mb-1">Gross Revenue</p>
-           <p className="text-3xl font-black text-gray-900">₱{stats.revenue.toLocaleString()}</p>
+        <div className="flex items-center gap-4">
+          <div className="flex text-yellow-400">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <Star key={star} size={28} className={star <= Math.round(Number(avgPlatformRating)) ? "fill-yellow-400" : "text-gray-200"} />
+            ))}
+          </div>
+          <div className="text-4xl font-black text-gray-900">{avgPlatformRating} <span className="text-lg text-gray-400">/ 5.0</span></div>
         </div>
-        <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-200 hover:shadow-md transition">
-           <div className="w-12 h-12 bg-orange-100 text-orange-600 rounded-2xl flex items-center justify-center mb-4"><Activity size={24}/></div>
-           <p className="text-xs font-black text-gray-500 uppercase tracking-widest mb-1">Active Deliveries</p>
-           <p className="text-3xl font-black text-gray-900">{stats.active}</p>
-        </div>
-        <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-200 hover:shadow-md transition">
-           <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mb-4"><Users size={24}/></div>
-           <p className="text-xs font-black text-gray-500 uppercase tracking-widest mb-1">Verified Clients</p>
-           <p className="text-3xl font-black text-gray-900">{clients.length}</p>
-        </div>
-        <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-200 hover:shadow-md transition">
-           <div className="w-12 h-12 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center mb-4"><Truck size={24}/></div>
-           <p className="text-xs font-black text-gray-500 uppercase tracking-widest mb-1">Total Suppliers</p>
-           <p className="text-3xl font-black text-gray-900">{suppliers.length}</p>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-3xl shadow-sm border border-gray-200 p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-         <div>
-            <h3 className="text-xl font-black uppercase tracking-widest text-gray-900 mb-1">Platform Satisfaction Score</h3>
-            <p className="text-sm font-bold text-gray-500">Aggregated from verified client post-rental reviews</p>
-         </div>
-         <div className="flex items-center gap-4 bg-gray-50 px-6 py-4 rounded-2xl border border-gray-100">
-            <div className="flex gap-1">
-               {[1, 2, 3, 4, 5].map((star) => (
-                 <Star 
-                   key={star} 
-                   size={28} 
-                   className={star <= Math.round(globalSatisfaction) ? "fill-yellow-500 text-yellow-500" : "fill-gray-200 text-gray-200"} 
-                 />
-               ))}
-            </div>
-            <div className="h-10 w-px bg-gray-300 mx-2"></div>
-            <span className="text-4xl font-black text-gray-900">{globalSatisfaction === 0 ? '0.0' : globalSatisfaction.toFixed(1)} <span className="text-lg text-gray-400">/ 5.0</span></span>
-         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="p-6 border-b border-gray-100 bg-gray-50/50">
-             <h3 className="text-lg font-black uppercase tracking-widest text-gray-900 flex items-center gap-2"><TrendingUp size={20} className="text-orange-600"/> Top Performing Suppliers</h3>
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-gray-200 flex items-center gap-3">
+            <TrendingUp className="text-orange-600" size={20} />
+            <h3 className="font-black text-gray-900 uppercase tracking-widest">Top Performing Suppliers</h3>
           </div>
-          <div className="p-0">
-            <table className="w-full text-left">
-              <thead className="bg-gray-50 border-b border-gray-100">
-                <tr>
-                   <th className="p-4 px-6 text-xs font-black text-gray-500 uppercase">Rank & Supplier</th>
-                   <th className="p-4 text-xs font-black text-gray-500 uppercase">Customer Rating</th>
-                   <th className="p-4 px-6 text-xs font-black text-gray-500 uppercase text-right">Total Revenue</th>
+          <table className="w-full text-sm text-left">
+            <thead className="bg-gray-50 text-gray-500 font-black text-[10px] uppercase tracking-widest">
+              <tr><th className="px-6 py-4">Rank & Supplier</th><th className="px-6 py-4 text-center">Customer Rating</th><th className="px-6 py-4 text-right">Total Revenue</th></tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {supplierStats.map((s: any, i: number) => (
+                <tr key={s.id} className="hover:bg-gray-50 transition">
+                  <td className="px-6 py-4 flex items-center gap-3">
+                    <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black ${i === 0 ? 'bg-yellow-100 text-yellow-700' : i === 1 ? 'bg-gray-200 text-gray-700' : i === 2 ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-500'}`}>#{i + 1}</span>
+                    <div><p className="font-bold text-gray-900">{s.firstName}</p><p className="text-[10px] text-gray-500 uppercase tracking-widest">{s.orderCount} ORDERS</p></div>
+                  </td>
+                  <td className="px-6 py-4 text-center"><span className="bg-yellow-50 text-yellow-700 px-2 py-1 rounded-md font-bold text-xs flex items-center justify-center gap-1 w-16 mx-auto"><Star size={10} className="fill-yellow-500 text-yellow-500"/> {s.avgRating}</span></td>
+                  <td className="px-6 py-4 text-right font-black text-green-600">₱{s.totalRevenue.toLocaleString()}</td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {topSuppliers.map((sup: any, i: number) => (
-                   <tr key={i} className="hover:bg-gray-50 transition">
-                      <td className="p-4 px-6 flex items-center gap-4">
-                        <div className="w-8 h-8 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center text-sm font-black shrink-0">#{i+1}</div>
-                        <div>
-                          <span className="font-bold text-gray-900 line-clamp-1">{sup.name}</span>
-                          <span className="text-[10px] font-bold text-gray-400 uppercase">{sup.count} Orders</span>
-                        </div>
-                      </td>
-                      <td className="p-4">
-                         <div className="flex items-center gap-1.5 bg-yellow-50 w-fit px-2.5 py-1 rounded-lg border border-yellow-100">
-                            <Star size={14} className="fill-yellow-500 text-yellow-500" />
-                            <span className="font-black text-yellow-700 text-xs">{getRating(sup.id)}</span>
-                         </div>
-                      </td>
-                      <td className="p-4 px-6 text-right">
-                        <p className="font-black text-green-600 text-base">₱{sup.rev.toLocaleString()}</p>
-                      </td>
-                   </tr>
-                ))}
-                {topSuppliers.length === 0 && <tr><td colSpan={3} className="text-center text-gray-500 text-sm font-medium p-8">No revenue data available yet.</td></tr>}
-              </tbody>
-            </table>
-          </div>
+              ))}
+              {supplierStats.length === 0 && <tr><td colSpan={3} className="px-6 py-8 text-center text-gray-500 font-medium">No supplier data available.</td></tr>}
+            </tbody>
+          </table>
         </div>
 
-        <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="p-6 border-b border-gray-100 bg-gray-50/50">
-             <h3 className="text-lg font-black uppercase tracking-widest text-gray-900 flex items-center gap-2"><Trophy size={20} className="text-orange-600"/> Top Active Customers</h3>
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-gray-200 flex items-center gap-3">
+            <Trophy className="text-orange-600" size={20} />
+            <h3 className="font-black text-gray-900 uppercase tracking-widest">Top Active Customers</h3>
           </div>
-          <div className="p-0">
-            <table className="w-full text-left">
-              <thead className="bg-gray-50 border-b border-gray-100">
-                <tr>
-                   <th className="p-4 px-6 text-xs font-black text-gray-500 uppercase">Rank & Client</th>
-                   <th className="p-4 text-xs font-black text-gray-500 uppercase text-center">Orders Taken</th>
-                   <th className="p-4 px-6 text-xs font-black text-gray-500 uppercase text-right">Money Spent</th>
+          <table className="w-full text-sm text-left">
+            <thead className="bg-gray-50 text-gray-500 font-black text-[10px] uppercase tracking-widest">
+              <tr><th className="px-6 py-4">Rank & Client</th><th className="px-6 py-4 text-center">Orders Taken</th><th className="px-6 py-4 text-right">Money Spent</th></tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {clientStats.map((c: any, i: number) => (
+                <tr key={c.id} className="hover:bg-gray-50 transition">
+                  <td className="px-6 py-4 flex items-center gap-3">
+                    <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-[10px] font-black">#{i + 1}</span>
+                    <p className="font-bold text-gray-900">{c.firstName}</p>
+                  </td>
+                  <td className="px-6 py-4 text-center font-bold text-gray-600">{c.orderCount}</td>
+                  <td className="px-6 py-4 text-right font-black text-gray-900">₱{c.totalSpent.toLocaleString()}</td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {topClients.map((client: any, i: number) => (
-                   <tr key={i} className="hover:bg-gray-50 transition">
-                      <td className="p-4 px-6 flex items-center gap-4">
-                        <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center text-sm font-black shrink-0">#{i+1}</div>
-                        <span className="font-bold text-gray-900 line-clamp-1">{client.name}</span>
-                      </td>
-                      <td className="p-4 text-center">
-                         <span className="font-black text-gray-600 bg-gray-100 px-3 py-1 rounded-lg text-sm">{client.count}</span>
-                      </td>
-                      <td className="p-4 px-6 text-right">
-                        <p className="font-black text-gray-900 text-base">₱{client.spent.toLocaleString()}</p>
-                      </td>
-                   </tr>
-                ))}
-                {topClients.length === 0 && <tr><td colSpan={3} className="text-center text-gray-500 text-sm font-medium p-8">No order data available yet.</td></tr>}
-              </tbody>
-            </table>
-          </div>
+              ))}
+              {clientStats.length === 0 && <tr><td colSpan={3} className="px-6 py-8 text-center text-gray-500 font-medium">No client data available.</td></tr>}
+            </tbody>
+          </table>
         </div>
-
       </div>
     </div>
   );

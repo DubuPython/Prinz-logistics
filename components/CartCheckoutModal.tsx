@@ -1,3 +1,4 @@
+"use client";
 import React, { useState } from 'react';
 import { X, ShoppingCart, ShieldCheck, Trash2, MapPin, Calendar, Edit, UserPlus } from 'lucide-react';
 import { API_URL } from '../lib/utils';
@@ -8,10 +9,10 @@ export default function CartCheckoutModal({ isOpen, cartItems, user, onClose, on
   if (!isOpen) return null;
 
   const getSafeItemData = (cartItem: any) => {
-    const loc = cartItem.rentDetails?.location || cartItem.details?.location || cartItem.location || 'Location Pending';
-    const startRaw = cartItem.rentDetails?.startDate || cartItem.details?.startDate || cartItem.startDate || new Date().toISOString().split('T')[0];
-    const endRaw = cartItem.rentDetails?.endDate || cartItem.details?.endDate || cartItem.endDate || new Date(Date.now() + 86400000).toISOString().split('T')[0];
-    const needOp = cartItem.rentDetails?.needOperator || cartItem.details?.needOperator || cartItem.needOperator || false;
+    const loc = cartItem.deliveryLocation || cartItem.rentDetails?.location || cartItem.details?.location || cartItem.location || 'Location Pending';
+    const startRaw = cartItem.startDate || cartItem.rentDetails?.startDate || cartItem.details?.startDate || new Date().toISOString().split('T')[0];
+    const endRaw = cartItem.endDate || cartItem.rentDetails?.endDate || cartItem.details?.endDate || new Date(Date.now() + 86400000).toISOString().split('T')[0];
+    const needOp = cartItem.needOperator || cartItem.rentDetails?.needOperator || cartItem.details?.needOperator || false;
     
     const d1 = new Date(startRaw);
     const d2 = new Date(endRaw);
@@ -21,7 +22,7 @@ export default function CartCheckoutModal({ isOpen, cartItems, user, onClose, on
     const base = cartItem.baseTotal || (Number(cartItem.equipment?.rentalPricePerDay || 0) * diffDays);
     const opFee = needOp ? (2500 * diffDays) : 0;
     const calcVat = cartItem.vat || ((base + opFee) * 0.12);
-    const grand = cartItem.grandTotal || (base + opFee + calcVat);
+    const grand = cartItem.totalCost || cartItem.grandTotal || (base + opFee + calcVat);
 
     return { loc, startRaw, endRaw, needOp, diffDays, base, opFee, calcVat, grand };
   };
@@ -63,7 +64,6 @@ export default function CartCheckoutModal({ isOpen, cartItems, user, onClose, on
         return payload;
       });
 
-      // SECURE PAYLOAD: Maps the cart items to force the backend to calculate the price.
       const checkoutItems = cartItems.map((cartItem: any) => {
         const safeData = getSafeItemData(cartItem);
         return {
@@ -119,14 +119,15 @@ export default function CartCheckoutModal({ isOpen, cartItems, user, onClose, on
                   const safeData = getSafeItemData(cartItem);
                   return (
                     <div key={idx} className="flex gap-5 p-5 bg-white border border-orange-200 rounded-2xl relative shadow-sm">
-                       <img src={cartItem.equipment.imageUrl} className="w-28 h-28 rounded-xl object-cover shadow-sm" />
+                       <img src={cartItem.equipment?.imageUrl} className="w-28 h-28 rounded-xl object-cover shadow-sm bg-gray-200" />
                        <div className="flex-1 flex flex-col justify-between">
                           <div className="flex justify-between items-start mb-2">
                             <div>
-                              <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-1">{cartItem.equipment.category?.replace('_', ' ')}</p>
-                              <p className="font-black text-gray-900 text-lg leading-tight">{cartItem.equipment.modelName}</p>
+                              <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-1">{cartItem.equipment?.category?.replace('_', ' ')}</p>
+                              <p className="font-black text-gray-900 text-lg leading-tight">{cartItem.equipment?.modelName}</p>
                             </div>
                             <div className="flex items-center gap-2">
+                              {/* 🛡️ FIX: Edit function successfully bound */}
                               <button onClick={() => onEditItem(idx)} className="p-2 bg-gray-100 text-gray-600 hover:text-white hover:bg-gray-900 rounded-lg shadow-sm transition" title="Edit Item">
                                 <Edit size={16}/>
                               </button>

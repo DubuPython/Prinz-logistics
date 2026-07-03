@@ -48,20 +48,21 @@ export default function AuthModal({ isOpen, initialIsLogin, onClose, onSuccess }
 
     if (isLogin) {
       try {
-        const res = await fetch("http://localhost:4000/users/login", {
+       const res = await fetch("http://localhost:4000/users/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          credentials: "include", // 🛡️ CRITICAL: Allows the browser to accept the secure cookie
           body: JSON.stringify({ email: authForm.email, passwordHash: authForm.password })
         });
         
-        if (res.status === 429) throw new Error("Rate Limit Exceeded. You are clicking/refreshing too fast. Please wait 15 minutes or restart the backend server.");
-        if (!res.ok) throw new Error("Invalid credentials");
+        if (res.status === 429) throw new Error("Rate Limit Exceeded. Please wait 15 minutes.");
+        if (!res.ok) throw new Error("Invalid credentials. Please type them manually if using an autofill extension.");
         
         const { user, token } = await res.json();
         if (user.status === 'SUSPENDED') return setErrorMsg("Access Denied: Your account is suspended.");
         onSuccess(user, token);
       } catch (err: any) {
-        setErrorMsg(err.message || "Login Failed: Incorrect email or password.");
+        setErrorMsg(err.message || "Login Failed.");
       }
     } else {
       if (!isPasswordStrong) return setErrorMsg("Please ensure your password meets all security requirements.");
@@ -88,15 +89,8 @@ export default function AuthModal({ isOpen, initialIsLogin, onClose, onSuccess }
           body: JSON.stringify(payload)
         });
 
-        if (registerRes.status === 429) throw new Error("Rate Limit Exceeded. Please wait 15 minutes or restart backend.");
-        if (!registerRes.ok) {
-          const errData = await registerRes.json().catch(() => ({}));
-          // CRITICAL FIX: Catches duplicate phone number or email and informs the user
-          if (errData.message?.includes("contactNumber") || errData.message?.includes("duplicate")) {
-            throw new Error("This email or phone number is already registered.");
-          }
-          throw new Error("Registration Failed.");
-        }
+        if (registerRes.status === 409) throw new Error("This email or phone number is already registered.");
+        if (!registerRes.ok) throw new Error("Registration Failed.");
 
         const loginRes = await fetch("http://localhost:4000/users/login", {
           method: "POST",
@@ -141,7 +135,8 @@ export default function AuthModal({ isOpen, initialIsLogin, onClose, onSuccess }
 
         {errorMsg && <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-xl text-sm font-bold text-center border border-red-200">{errorMsg}</div>}
 
-        <form onSubmit={handleAuthSubmit} className="space-y-5" autoComplete="off">
+        {/* CRITICAL FIX: suppressHydrationWarning added to prevent extension crashes */}
+        <form suppressHydrationWarning onSubmit={handleAuthSubmit} className="space-y-5" autoComplete="off">
           
           {!isLogin && (
             <div className="flex bg-gray-100 dark:bg-gray-700 p-1 rounded-xl mb-6 max-w-md mx-auto">
@@ -153,8 +148,6 @@ export default function AuthModal({ isOpen, initialIsLogin, onClose, onSuccess }
           {!isLogin ? (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                
-                {/* CRITICAL FIX: Flawless Flexbox rendering guarantees icon is completely centered */}
                 <div className="flex items-center w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-xl focus-within:ring-2 focus-within:ring-orange-500 transition">
                   <UserIcon size={18} className="text-gray-400 shrink-0 mr-3" />
                   <input type="text" required autoComplete="off" placeholder="First Name / Company" className="w-full bg-transparent outline-none dark:text-white" value={authForm.name} onChange={e => setAuthForm({ ...authForm, name: e.target.value })} />

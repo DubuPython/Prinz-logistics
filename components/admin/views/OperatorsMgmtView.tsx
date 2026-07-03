@@ -1,51 +1,63 @@
-import React from "react";
-import { Users, Trash2 } from "lucide-react";
+"use client";
+import React, { useState } from "react";
+import { Users, Trash2, Edit3 } from "lucide-react";
 
-export default function OperatorsMgmtView({ operators, confirmBox, apiAction }: any) {
-  
-  const handleDelete = (id: string) => {
-    confirmBox("Remove Operator", "Permanently delete this certified operator from the platform?", () => {
-      apiAction(`/operators/${id}`, 'DELETE', undefined, "Operator successfully removed.");
-    });
-  };
-
+export default function OperatorsMgmtView({ operators = [], confirmBox, apiAction, showToast }: any) {
   return (
-    <div className="animate-fade-in max-w-6xl mx-auto">
-      <h2 className="text-2xl font-black uppercase tracking-widest mb-8 flex items-center gap-3"><Users className="text-orange-600" size={28}/> Operators Management</h2>
-      
-      <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
-        <table className="w-full text-left">
-          <thead className="bg-gray-50 border-b border-gray-200">
+    <div className="animate-fade-in">
+      <div className="flex items-center gap-3 mb-8">
+        <Users className="text-orange-600" size={28} />
+        <h2 className="text-2xl font-black text-gray-900 uppercase tracking-widest">Operators Management</h2>
+      </div>
+
+      <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+        <table className="w-full text-sm text-left">
+          <thead className="bg-gray-50 text-gray-500 font-black text-[10px] uppercase tracking-widest">
             <tr>
-              <th className="p-5 text-xs font-black text-gray-500 uppercase tracking-widest">Operator Name</th>
-              <th className="p-5 text-xs font-black text-gray-500 uppercase tracking-widest">Supplier Base</th>
-              <th className="p-5 text-xs font-black text-gray-500 uppercase tracking-widest">Specialty License</th>
-              <th className="p-5 text-xs font-black text-gray-500 uppercase tracking-widest">Status</th>
-              <th className="p-5 text-xs font-black text-gray-500 uppercase tracking-widest text-right">Actions</th>
+              <th className="px-6 py-4">Operator Name</th>
+              <th className="px-6 py-4">Supplier Base</th>
+              <th className="px-6 py-4">Specialty License</th>
+              <th className="px-6 py-4 text-center">Status</th>
+              <th className="px-6 py-4 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {operators.map((op: any) => (
-              <tr key={op.id} className="hover:bg-gray-50 transition-colors">
-                <td className="p-5">
-                  <p className="font-black text-sm text-gray-900">{op.name}</p>
-                  <p className="text-xs font-bold text-gray-500">{op.exp}</p>
+            {operators.map((op: any, idx: number) => (
+              <tr key={idx} className="hover:bg-gray-50 transition">
+                <td className="px-6 py-4 font-black text-gray-900 flex items-center gap-3">
+                  {op.profileImageUrl ? (
+                    <img src={op.profileImageUrl} alt="Op" className="w-8 h-8 rounded-full object-cover border border-gray-200" />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-gray-200"></div>
+                  )}
+                  {op.name}
                 </td>
-                <td className="p-5">
-                  <span className="font-bold text-sm text-gray-700">{op.supplier?.firstName || 'Unknown Supplier'}</span>
+                <td className="px-6 py-4 font-bold text-gray-900">{op.supplier?.firstName || 'Unknown'}</td>
+                <td className="px-6 py-4 text-gray-500 font-medium">{op.expertise}</td>
+                <td className="px-6 py-4 text-center">
+                  <span className="w-3 h-3 bg-blue-500 rounded-full inline-block"></span>
                 </td>
-                <td className="p-5 text-sm font-bold text-gray-900">{op.category?.replace('_', ' ')}</td>
-                <td className="p-5">
-                  <span className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${op.status === 'AVAILABLE' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>
-                    {op.status}
-                  </span>
-                </td>
-                <td className="p-5 text-right">
-                  <button onClick={() => handleDelete(op.id)} className="p-2.5 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-colors" title="Delete Operator"><Trash2 size={16}/></button>
+                <td className="px-6 py-4 text-right">
+                  <div className="flex justify-end gap-2">
+                    <button 
+                      onClick={() => showToast("Admin edit portal for operators is under development. Use Supplier portal.", "info")}
+                      className="p-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition" title="Edit Operator"
+                    >
+                      <Edit3 size={16}/>
+                    </button>
+                    <button 
+                      onClick={() => confirmBox('Delete Operator?', `Are you sure you want to remove ${op.name}?`, () => apiAction(`/operators/${op.id}`, 'DELETE', null, 'Operator removed.'))}
+                      className="p-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition" title="Delete Operator"
+                    >
+                      <Trash2 size={16}/>
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
-            {operators.length === 0 && (<tr><td colSpan={5} className="p-12 text-center text-gray-500 font-medium">No operators registered on the platform yet.</td></tr>)}
+            {operators.length === 0 && (
+              <tr><td colSpan={5} className="px-6 py-12 text-center text-gray-500 font-medium">No operators registered on platform.</td></tr>
+            )}
           </tbody>
         </table>
       </div>

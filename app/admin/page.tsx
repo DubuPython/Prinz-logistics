@@ -68,7 +68,7 @@ export default function AdminDashboard() {
         <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
           {activeTab === 'health' && <AnalyticsView orders={data.rentals} suppliers={data.users.filter((u:any)=>u.role==='SUPPLIER')} clients={data.users.filter((u:any)=>u.role==='CLIENT')} ratings={ratings} />}
           {activeTab === 'inquiries' && <InquiriesView inquiries={data.inquiries} apiAction={apiAction} confirmBox={confirmAction} />}
-          {activeTab === 'access' && <AccessMgmtView users={data.users} adminUser={auth.adminUser} searchTerm={safeSearch} apiAction={apiAction} />}
+          {activeTab === 'access' && <AccessMgmtView usersList={data.users} apiAction={apiAction} currentUser={auth.adminUser}/>}
           {activeTab === 'fleet' && <FleetMgmtView fleet={data.fleet} suppliers={data.users.filter((u:any)=>u.role==='SUPPLIER')} searchTerm={safeSearch} apiAction={apiAction} confirmBox={confirmAction} />}
           {activeTab === 'orders' && <ActiveOrdersView orders={data.rentals} searchTerm={safeSearch} apiAction={apiAction} confirmBox={confirmAction} />}
           {activeTab === 'operators' && <OperatorsMgmtView operators={data.operators} confirmBox={confirmAction} apiAction={apiAction} showToast={showToast} />}
