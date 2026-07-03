@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { API_URL } from "../../../lib/utils";
 
 export function useAdminData(showToast: (msg: string, type: 'info' | 'success' | 'error') => void) {
@@ -6,19 +6,24 @@ export function useAdminData(showToast: (msg: string, type: 'info' | 'success' |
   const [auth, setAuth] = useState({ isAuthenticated: false, adminUser: null as any, isLoading: true });
   const [ratings, setRatings] = useState<Record<string, { sum: number, count: number }>>({});
 
-  // 1. Explicitly return Record<string, string> to satisfy TypeScript
+  // 1. Explicitly build the headers object to prevent TypeScript union inference issues
   const getAuthHeaders = (): Record<string, string> => {
     if (typeof window === 'undefined') return {};
+    
+    const headers: Record<string, string> = {}; 
     const token = localStorage.getItem('prinz_token');
-    return token ? { "Authorization": `Bearer ${token}` } : {};
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
+    return headers;
   };
 
   const fetchAll = async () => {
-    const headers = getAuthHeaders();
-    
-    // 2. Cast the headers explicitly to ensure RequestInit accepts them
+    // 2. No casting needed anymore, it perfectly matches RequestInit requirements
     const fetchConfig: RequestInit = { 
-      headers: headers as Record<string, string>, 
+      headers: getAuthHeaders(), 
       cache: 'no-store', 
       credentials: 'include' 
     };
@@ -117,6 +122,7 @@ export function useAdminData(showToast: (msg: string, type: 'info' | 'success' |
     try {
       const res = await fetch(`${API_URL}${endpoint}`, {
         method,
+        // Spreading here works perfectly now because getAuthHeaders is strictly Record<string, string>
         headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         credentials: 'include', 
         body: payload ? JSON.stringify(payload) : undefined
