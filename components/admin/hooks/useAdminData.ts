@@ -11,6 +11,21 @@ export function useAdminData(showToast: (msg: string, type: 'info' | 'success' |
     const token = localStorage.getItem('prinz_token');
     return token ? { "Authorization": `Bearer ${token}` } : {};
   };
+  
+  const headers = getAuthHeaders();
+
+// This ensures we only pass the header if it actually exists
+const sanitizedHeaders: Record<string, string> = {};
+if (headers.Authorization) {
+  sanitizedHeaders['Authorization'] = headers.Authorization;
+}
+
+const fetchConfig: RequestInit = { 
+  headers: sanitizedHeaders, // Use the cleaned object
+  cache: 'no-store', 
+  credentials: 'include' 
+};
+  
 
   const fetchAll = async () => {
     const headers = getAuthHeaders();
