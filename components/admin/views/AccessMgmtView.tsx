@@ -1,45 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import { Eye, X, FileText } from 'lucide-react'; // Added icons for the UI
+import React, { useState } from 'react';
+import { Eye, X, FileText } from 'lucide-react';
 
-export default function AccessMgmtView() {
-  const [users, setUsers] = useState([]);
+// 🛡️ CRITICAL FIX: Added the props signature here to resolve the IntrinsicAttributes error
+export default function AccessMgmtView({ usersList = [], apiAction, currentUser }: any) {
   
-  // NEW: State to track which document is currently being viewed
+  // State to track which document is currently being viewed
   const [viewingDoc, setViewingDoc] = useState<string | null>(null);
 
-  const fetchUsers = async () => {
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users`);
-      if (res.ok) {
-        const data = await res.json();
-        setUsers(data);
-      }
-    } catch (error) {
-      console.error("Failed to fetch users", error);
-    }
-  };
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
   const handleVerifySupplier = async (userId: string) => {
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${userId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "VERIFIED" }) 
-      });
+    // 🛡️ CRITICAL FIX: Use the parent's apiAction instead of a manual fetch
+    const success = await apiAction(
+      `/users/${userId}`, 
+      'PATCH', 
+      { status: "VERIFIED" }, 
+      "Supplier Verified Successfully!"
+    );
 
-      if (!response.ok) throw new Error("Failed to verify supplier");
-      
-      alert("Supplier Verified Successfully!");
+    if (success) {
       setViewingDoc(null); // Close the document viewer if it's open
-      fetchUsers(); // Refresh the table
-      
-    } catch (error) {
-      console.error(error);
-      alert("Error verifying supplier.");
     }
   };
 
@@ -61,7 +39,8 @@ export default function AccessMgmtView() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {users.map((user: any) => (
+            {/* 🛡️ CRITICAL FIX: Map over usersList instead of the old local state */}
+            {usersList.map((user: any) => (
               <tr key={user.id} className="hover:bg-gray-50 transition-colors">
                 <td className="px-6 py-4 font-bold text-gray-900">{user.firstName} {user.lastName}</td>
                 <td className="px-6 py-4">{user.email}</td>
@@ -75,7 +54,7 @@ export default function AccessMgmtView() {
                 </td>
                 <td className="px-6 py-4 text-right space-x-2 flex justify-end items-center gap-2">
                   
-                  {/* NEW: VIEW DOCUMENT BUTTON */}
+                  {/* VIEW DOCUMENT BUTTON */}
                   {user.documentUrl && user.status === 'PENDING_DOCS' && (
                     <button 
                       onClick={() => setViewingDoc(user.documentUrl)}
@@ -99,7 +78,7 @@ export default function AccessMgmtView() {
                 </td>
               </tr>
             ))}
-            {users.length === 0 && (
+            {usersList.length === 0 && (
               <tr><td colSpan={5} className="px-6 py-8 text-center text-gray-500">No users found.</td></tr>
             )}
           </tbody>
