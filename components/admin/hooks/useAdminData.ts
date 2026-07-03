@@ -35,9 +35,10 @@ export function useAdminData(showToast: (msg: string, type: 'info' | 'success' |
         fetch(`${API_URL}/inquiries`, fetchConfig)
       ]);
 
-      if (usersRes.status === 401) {
+      if (usersRes.status === 401 || usersRes.status === 403) {
         setAuth(prev => ({ ...prev, isAuthenticated: false, isLoading: false }));
         localStorage.removeItem('prinz_admin_user');
+        localStorage.removeItem('prinz_token');
         return; 
       }
 
@@ -88,13 +89,20 @@ export function useAdminData(showToast: (msg: string, type: 'info' | 'success' |
       });
       
       if (!res.ok) throw new Error("Invalid credentials.");
-      const { user } = await res.json();
+      
+      // 🛡️ CRITICAL FIX: Destructure the token from the backend response!
+      const { user, token } = await res.json();
       
       if (user.role !== 'ADMIN' && user.role !== 'SUPERADMIN') {
         throw new Error("Access Denied: You do not have Administrator privileges.");
       }
       
+      // 🛡️ CRITICAL FIX: Save the token into local storage so getAuthHeaders can use it
+      if (token) {
+        localStorage.setItem('prinz_token', token);
+      }
       localStorage.setItem('prinz_admin_user', JSON.stringify(user));
+      
       setAuth({ isAuthenticated: true, adminUser: user, isLoading: true });
       showToast("Admin access granted.", "success");
       fetchAll(); 
