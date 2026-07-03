@@ -1,14 +1,25 @@
 import React from "react";
-import { Key } from "lucide-react";
+import { CheckCircle, AlertOctagon, Info, Key} from 'lucide-react';
 
-export const ToastAlert = ({ toast }: any) => {
+export function ToastAlert({ toast }: { toast: { show: boolean, message: string, type: 'info' | 'success' | 'error' } }) {
   if (!toast.show) return null;
+
+  // Modern, high-contrast color themes
+  const theme = {
+    success: 'bg-green-600 text-white border-green-700 shadow-green-900/20',
+    error: 'bg-red-600 text-white border-red-700 shadow-red-900/20',
+    info: 'bg-gray-900 text-white border-black shadow-black/20'
+  };
+
+  const Icon = toast.type === 'success' ? CheckCircle : toast.type === 'error' ? AlertOctagon : Info;
+
   return (
-    <div className={`fixed top-8 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full text-white font-bold text-sm shadow-2xl z-[100] animate-fade-in ${toast.type === 'error' ? 'bg-red-600' : toast.type === 'success' ? 'bg-green-600' : 'bg-gray-900'}`}>
+    <div className={`fixed top-6 right-6 z-[9999] px-6 py-4 rounded-2xl shadow-2xl border font-bold text-sm tracking-wide flex items-center gap-3 transition-all animate-fade-in ${theme[toast.type]}`}>
+      <Icon size={20} className="opacity-90" />
       {toast.message}
     </div>
   );
-};
+}
 
 export const ConfirmModal = ({ box, setBox }: any) => {
   if (!box.show) return null;
