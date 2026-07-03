@@ -77,7 +77,11 @@ export default function SupplierDashboardView({
         // 2. Send the document string to your users endpoint
         const res = await fetch(`${API_URL}/users/${user.id}`, {
           method: 'PATCH',
-          headers: getAuthHeaders(),
+          // 🛡️ CRITICAL FIX: Added Content-Type so the backend processes the JSON body
+          headers: {
+            'Content-Type': 'application/json',
+            ...getAuthHeaders()
+          },
           body: JSON.stringify({ documentUrl: base64String })
         });
 

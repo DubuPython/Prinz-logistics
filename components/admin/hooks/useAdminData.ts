@@ -8,14 +8,12 @@ export function useAdminData(showToast: (msg: string, type: 'info' | 'success' |
 
   const getAuthHeaders = (): Record<string, string> => {
     const headers: Record<string, string> = {};
-    
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('prinz_token');
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
     }
-    
     return headers;
   };
 
@@ -35,10 +33,14 @@ export function useAdminData(showToast: (msg: string, type: 'info' | 'success' |
         fetch(`${API_URL}/inquiries`, fetchConfig)
       ]);
 
+      // 🛑 THE PANIC LOOP FIX IS HERE 🛑
       if (usersRes.status === 401 || usersRes.status === 403) {
-        setAuth(prev => ({ ...prev, isAuthenticated: false, isLoading: false }));
-        localStorage.removeItem('prinz_admin_user');
-        localStorage.removeItem('prinz_token');
+        console.error("Backend rejected the token. Status:", usersRes.status);
+        showToast(`Access Restricted: Backend rejected authentication (${usersRes.status}).`, "error");
+        
+        // We removed the code that aggressively wipes local storage and logs you out!
+        // You will now stay on the dashboard so you can actually see what is happening.
+        setAuth(prev => ({ ...prev, isLoading: false }));
         return; 
       }
 
@@ -90,14 +92,12 @@ export function useAdminData(showToast: (msg: string, type: 'info' | 'success' |
       
       if (!res.ok) throw new Error("Invalid credentials.");
       
-      // 🛡️ CRITICAL FIX: Destructure the token from the backend response!
       const { user, token } = await res.json();
       
       if (user.role !== 'ADMIN' && user.role !== 'SUPERADMIN') {
         throw new Error("Access Denied: You do not have Administrator privileges.");
       }
       
-      // 🛡️ CRITICAL FIX: Save the token into local storage so getAuthHeaders can use it
       if (token) {
         localStorage.setItem('prinz_token', token);
       }

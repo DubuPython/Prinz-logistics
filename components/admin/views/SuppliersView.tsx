@@ -7,7 +7,6 @@ export default function SuppliersView({ suppliers = [], rentalsList = [], apiAct
   const [editingUser, setEditingUser] = useState<any>(null);
   const [generatedPass, setGeneratedPass] = useState('');
 
-  // Search Filter
   const filteredSuppliers = suppliers.filter((u: any) => 
     u.firstName?.toLowerCase().includes(searchTerm || '') || u.email?.toLowerCase().includes(searchTerm || '')
   );
@@ -30,7 +29,6 @@ export default function SuppliersView({ suppliers = [], rentalsList = [], apiAct
     }
   };
 
-  // UserEditorView Features
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     const isEditing = !!editingUser.id;
@@ -51,7 +49,6 @@ export default function SuppliersView({ suppliers = [], rentalsList = [], apiAct
   return (
     <div className="w-full space-y-6 animate-fade-in relative">
       
-      {/* ADD/EDIT MODAL */}
       {editingUser && (
         <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-md border border-gray-200">
@@ -113,9 +110,11 @@ export default function SuppliersView({ suppliers = [], rentalsList = [], apiAct
                 <td className="px-6 py-4 text-right flex justify-end items-center gap-2">
                   <button onClick={() => setEditingUser(supplier)} className="p-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors" title="Edit Supplier"><Edit size={16}/></button>
                   
-                  {supplier.documentUrl && supplier.status === 'PENDING_DOCS' && (
+                  {/* 🛡️ FIX: Document button is now ALWAYS visible if a document exists! */}
+                  {supplier.documentUrl && (
                     <button onClick={() => setViewingDoc(supplier.documentUrl)} className="flex items-center gap-1 px-3 py-2 bg-gray-100 text-gray-700 text-xs font-bold rounded hover:bg-gray-200 transition-colors"><Eye size={14} /> View Doc</button>
                   )}
+
                   {supplier.status === 'PENDING_DOCS' && (
                     <button onClick={() => handleVerifySupplier(supplier.id)} className="flex items-center gap-1 px-4 py-2 bg-orange-600 text-white text-xs font-bold rounded hover:bg-orange-700 transition-colors"><CheckCircle size={14} /> VERIFY</button>
                   )}
@@ -133,7 +132,6 @@ export default function SuppliersView({ suppliers = [], rentalsList = [], apiAct
         </table>
       </div>
 
-      {/* DOCUMENT VIEWER MODAL */}
       {viewingDoc && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fade-in">
           <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
