@@ -10,9 +10,12 @@ import AccessMgmtView from "../../components/admin/views/AccessMgmtView";
 import FleetMgmtView from "../../components/admin/views/FleetMgmtView";
 import ActiveOrdersView from "../../components/admin/views/ActiveOrdersView";
 import FinanceHistoryView from "../../components/admin/views/FinanceHistoryView";
-import UserEditorView from "../../components/admin/views/UserEditorView";
 import InquiriesView from "../../components/admin/views/InquiriesView";
 import OperatorsMgmtView from "../../components/admin/views/OperatorsMgmtView";
+
+// Imported the two new views we just created
+import ClientsView from "../../components/admin/views/ClientsView";
+import SuppliersView from "../../components/admin/views/SuppliersView";
 
 export default function AdminDashboard() {
   const [toast, setToast] = useState({ show: false, message: '', type: 'info' as 'info'|'success'|'error' });
@@ -73,8 +76,10 @@ export default function AdminDashboard() {
           {activeTab === 'orders' && <ActiveOrdersView orders={data.rentals} searchTerm={safeSearch} apiAction={apiAction} confirmBox={confirmAction} />}
           {activeTab === 'operators' && <OperatorsMgmtView operators={data.operators} confirmBox={confirmAction} apiAction={apiAction} showToast={showToast} />}
           {activeTab === 'history' && <FinanceHistoryView orders={data.rentals} searchTerm={safeSearch} apiAction={apiAction} confirmBox={confirmAction} showToast={showToast} />}
-          {activeTab === 'clients' && <UserEditorView type="CLIENT" users={data.users.filter((u:any)=>u.role==='CLIENT')} rentals={data.rentals} searchTerm={safeSearch} apiAction={apiAction} confirmBox={confirmAction} />}
-          {activeTab === 'suppliers' && <UserEditorView type="SUPPLIER" users={data.users.filter((u:any)=>u.role==='SUPPLIER')} rentals={data.rentals} searchTerm={safeSearch} apiAction={apiAction} confirmBox={confirmAction} />}
+          
+          {/* Swapped UserEditorView with the new ClientsView and SuppliersView */}
+          {activeTab === 'clients' && <ClientsView clients={data.users.filter((u: any) => u.role === 'CLIENT')} rentalsList={data.rentals} apiAction={apiAction} />}
+          {activeTab === 'suppliers' && <SuppliersView suppliers={data.users.filter((u: any) => u.role === 'SUPPLIER')} apiAction={apiAction} />}
         </div>
       </main>
     </div>
