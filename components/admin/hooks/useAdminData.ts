@@ -7,23 +7,24 @@ export function useAdminData(showToast: (msg: string, type: 'info' | 'success' |
   const [ratings, setRatings] = useState<Record<string, { sum: number, count: number }>>({});
 
   // 1. Explicitly build the headers object to prevent TypeScript union inference issues
+  // Explicitly define as a Record so it can be safely spread in apiAction later
   const getAuthHeaders = (): Record<string, string> => {
-    if (typeof window === 'undefined') return {};
+    const headers: Record<string, string> = {};
     
-    const headers: Record<string, string> = {}; 
-    const token = localStorage.getItem('prinz_token');
-    
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('prinz_token');
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
     }
     
     return headers;
   };
 
-  const fetchAll = async () => {
-    // 2. No casting needed anymore, it perfectly matches RequestInit requirements
+ const fetchAll = async () => {
+    // Cast headers to HeadersInit right at the source of the fetch config
     const fetchConfig: RequestInit = { 
-      headers: getAuthHeaders(), 
+      headers: getAuthHeaders() as HeadersInit, 
       cache: 'no-store', 
       credentials: 'include' 
     };
