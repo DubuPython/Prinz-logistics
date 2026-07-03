@@ -48,7 +48,7 @@ export default function AuthModal({ isOpen, initialIsLogin, onClose, onSuccess }
 
     if (isLogin) {
       try {
-       const res = await fetch("${process.env.NEXT_PUBLIC_API_URL}/users/login", {
+       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include", // 🛡️ CRITICAL: Allows the browser to accept the secure cookie
@@ -83,7 +83,7 @@ export default function AuthModal({ isOpen, initialIsLogin, onClose, onSuccess }
           status: authRole === 'SUPPLIER' ? 'PENDING_DOCS' : 'VERIFIED'
         };
 
-        const registerRes = await fetch("${process.env.NEXT_PUBLIC_API_URL}/users", {
+        const registerRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
@@ -92,7 +92,7 @@ export default function AuthModal({ isOpen, initialIsLogin, onClose, onSuccess }
         if (registerRes.status === 409) throw new Error("This email or phone number is already registered.");
         if (!registerRes.ok) throw new Error("Registration Failed.");
 
-        const loginRes = await fetch("${process.env.NEXT_PUBLIC_API_URL}/users/login", {
+        const loginRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email: authForm.email, passwordHash: authForm.password })
