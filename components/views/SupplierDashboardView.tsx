@@ -56,6 +56,33 @@ export default function SupplierDashboardView({
     { id: 'OPERATORS', icon: <Users size={16} />, label: 'Operators' }
   ];
 
+  // ==========================================
+  // THE VERIFICATION BLOCKER
+  // Intercepts the render if the user is not VERIFIED
+  // ==========================================
+  if (user?.status === 'PENDING_DOCS') {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[75vh] text-center px-4 animate-fade-in">
+        <div className="p-10 bg-white dark:bg-gray-900 rounded-3xl shadow-xl border border-gray-200 dark:border-gray-800 max-w-lg relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-2 bg-orange-500"></div>
+          <div className="w-24 h-24 bg-orange-50 dark:bg-orange-900/20 rounded-full flex items-center justify-center mx-auto mb-8 border border-orange-100 dark:border-orange-900/30">
+            <FileText className="text-orange-600 w-10 h-10" />
+          </div>
+          <h2 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-widest mb-4">Account Under Review</h2>
+          <p className="text-gray-600 dark:text-gray-400 font-medium leading-relaxed mb-6">
+            Your supplier registration has been successfully received and is currently marked as <span className="font-black text-orange-600 bg-orange-50 dark:bg-orange-900/30 px-2 py-1 rounded">PENDING_DOCS</span>. 
+          </p>
+          <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-100 dark:border-gray-800">
+            <p className="text-xs text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest leading-relaxed">
+              An administrator will review your account shortly. You will gain full access to your platform analytics, fleet dashboard, and operator management once verified.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  // ==========================================
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 animate-fade-in">
       <div className="mb-10"><h2 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-widest">ORDER MANAGEMENT</h2></div>

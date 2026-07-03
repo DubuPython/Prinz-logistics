@@ -1,8 +1,14 @@
 "use client";
 import React, { useState } from "react";
 import { Users, Trash2, Edit3 } from "lucide-react";
+// Import your modal component (Adjust the path if it is located elsewhere)
+import OperatorListingModal from "../../OperatorListingModal"; 
 
 export default function OperatorsMgmtView({ operators = [], confirmBox, apiAction, showToast }: any) {
+  // 1. ADD STATE FOR THE EDIT MODAL
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingOperator, setEditingOperator] = useState<any>(null);
+
   return (
     <div className="animate-fade-in">
       <div className="flex items-center gap-3 mb-8">
@@ -39,12 +45,18 @@ export default function OperatorsMgmtView({ operators = [], confirmBox, apiActio
                 </td>
                 <td className="px-6 py-4 text-right">
                   <div className="flex justify-end gap-2">
+                    
+                    {/* 2. UPDATE THE EDIT BUTTON TO OPEN THE MODAL */}
                     <button 
-                      onClick={() => showToast("Admin edit portal for operators is under development. Use Supplier portal.", "info")}
+                      onClick={() => {
+                        setEditingOperator(op);
+                        setIsEditModalOpen(true);
+                      }}
                       className="p-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition" title="Edit Operator"
                     >
                       <Edit3 size={16}/>
                     </button>
+
                     <button 
                       onClick={() => confirmBox('Delete Operator?', `Are you sure you want to remove ${op.name}?`, () => apiAction(`/operators/${op.id}`, 'DELETE', null, 'Operator removed.'))}
                       className="p-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition" title="Delete Operator"
@@ -61,6 +73,25 @@ export default function OperatorsMgmtView({ operators = [], confirmBox, apiActio
           </tbody>
         </table>
       </div>
+
+      {/* 3. RENDER THE MODAL AT THE BOTTOM OF THE COMPONENT */}
+      {isEditModalOpen && (
+        <OperatorListingModal
+          isOpen={isEditModalOpen}
+          initialData={editingOperator}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setEditingOperator(null);
+          }}
+          onSuccess={() => {
+            setIsEditModalOpen(false);
+            setEditingOperator(null);
+            showToast("Operator updated successfully!", "success");
+            // Since 'operators' are passed as props, the parent component might 
+            // need to trigger a refresh here if it doesn't automatically update.
+          }}
+        />
+      )}
     </div>
   );
 }
