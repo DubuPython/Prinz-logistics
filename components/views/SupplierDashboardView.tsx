@@ -64,6 +64,8 @@ export default function SupplierDashboardView({
   // Converts image to Base64 and sends to backend
   // ==========================================
   const handleDocumentSubmit = async () => {
+    console.log("Submit button clicked!"); // 🛡️ ADD THIS
+    console.log("Current selected file:", selectedFile); // 🛡️ ADD THIS
     if (!selectedFile) return showToast("Please select a document first.", "error");
     setIsUploading(true);
 
