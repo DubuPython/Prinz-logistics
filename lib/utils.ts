@@ -4,10 +4,15 @@ export const DEFAULT_IMAGE = "https://images.unsplash.com/photo-1581092160562-40
 // It checks for a live URL, and falls back to localhost if you are coding locally
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
-export const getAuthHeaders = () => {
+// 🛡️ THE FIX: Add explicitly typed return ": Record<string, string>"
+export const getAuthHeaders = (): Record<string, string> => {
+  // Next.js Safety: Prevents 'localStorage is not defined' errors during server builds
+  if (typeof window === 'undefined') {
+    return {};
+  }
+
   const token = localStorage.getItem('prinz_token');
   
-  // 🛡️ SECURITY FIX: Do not send the header if the token is missing, 'null', or 'undefined'
   if (!token || token === 'null' || token === 'undefined') {
     return {}; 
   }
