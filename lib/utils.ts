@@ -6,7 +6,13 @@ export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000
 
 export const getAuthHeaders = () => {
   const token = localStorage.getItem('prinz_token');
+  
+  // 🛡️ SECURITY FIX: Do not send the header if the token is missing, 'null', or 'undefined'
+  if (!token || token === 'null' || token === 'undefined') {
+    return {}; 
+  }
+  
   return {
-    'Authorization': `Bearer ${token}`
+    Authorization: `Bearer ${token}`
   };
 };
