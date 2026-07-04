@@ -4,11 +4,11 @@ import { X, HardHat, Camera } from "lucide-react";
 import { API_URL, getAuthHeaders } from "../lib/utils";
 
 export default function OperatorListingModal({ isOpen, itemToEdit, onClose, onSuccess, showToast }: any) {
+  // 🛡️ FIX: Added 'status' to the initial state
   const [formData, setFormData] = useState({ 
-    name: '', expertise: 'Heavy Machinery Operator', contactNumber: '', licenses: '', profileImageUrl: '' 
+    name: '', expertise: 'Heavy Machinery Operator', contactNumber: '', licenses: '', profileImageUrl: '', status: 'ACTIVE' 
   });
 
-  // 🛡️ FIX: Pre-fill data if Editing
   useEffect(() => {
     if (isOpen) {
       if (itemToEdit) {
@@ -17,10 +17,11 @@ export default function OperatorListingModal({ isOpen, itemToEdit, onClose, onSu
           expertise: itemToEdit.expertise || 'Heavy Machinery Operator',
           contactNumber: itemToEdit.contactNumber || '',
           licenses: itemToEdit.licenses || '',
-          profileImageUrl: itemToEdit.profileImageUrl || ''
+          profileImageUrl: itemToEdit.profileImageUrl || '',
+          status: itemToEdit.status || 'ACTIVE' // 🛡️ FIX: Pre-fill the status
         });
       } else {
-        setFormData({ name: '', expertise: 'Heavy Machinery Operator', contactNumber: '', licenses: '', profileImageUrl: '' });
+        setFormData({ name: '', expertise: 'Heavy Machinery Operator', contactNumber: '', licenses: '', profileImageUrl: '', status: 'ACTIVE' });
       }
     }
   }, [isOpen, itemToEdit]);
@@ -78,10 +79,21 @@ export default function OperatorListingModal({ isOpen, itemToEdit, onClose, onSu
           </div>
 
           <div><label className="block text-xs font-black uppercase mb-1">Full Name</label><input type="text" required className="w-full px-4 py-3 bg-gray-50 border rounded-xl outline-none" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} /></div>
+          
           <div><label className="block text-xs font-black uppercase mb-1">Primary Role</label><select className="w-full px-4 py-3 bg-gray-50 border rounded-xl outline-none" value={formData.expertise} onChange={e => setFormData({...formData, expertise: e.target.value})}><option value="Heavy Machinery Operator">Heavy Machinery Operator</option><option value="Transport & Truck Driver">Transport & Truck Driver</option><option value="Crane & Lifting Specialist">Crane & Lifting Specialist</option></select></div>
+          
+          {/* 🛡️ NEW: Status Dropdown */}
+          <div>
+            <label className="block text-xs font-black uppercase mb-1">Status</label>
+            <select className="w-full px-4 py-3 bg-gray-50 border rounded-xl outline-none" value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})}>
+              <option value="ACTIVE">Active</option>
+              <option value="UNAVAILABLE">Unavailable</option>
+            </select>
+          </div>
+
           <div><label className="block text-xs font-black uppercase mb-1">Certifications & Licenses</label><input type="text" placeholder="e.g. Pro-Driver, Crane Cert..." required className="w-full px-4 py-3 bg-gray-50 border rounded-xl outline-none" value={formData.licenses} onChange={e => setFormData({...formData, licenses: e.target.value})} /></div>
           <div><label className="block text-xs font-black uppercase mb-1">Contact Number</label><input type="text" required className="w-full px-4 py-3 bg-gray-50 border rounded-xl outline-none" value={formData.contactNumber} onChange={e => setFormData({...formData, contactNumber: e.target.value})} /></div>
-
+            
           <div className="flex gap-3 pt-6 border-t border-gray-200">
             <button type="button" onClick={onClose} className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-900 font-black rounded-xl uppercase transition">Cancel</button>
             <button type="submit" className="flex-1 py-3 bg-orange-600 hover:bg-orange-700 text-white font-black rounded-xl uppercase transition shadow-lg">{itemToEdit ? 'Update Details' : 'Save Profile'}</button>

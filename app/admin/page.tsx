@@ -77,9 +77,9 @@ export default function AdminDashboard() {
           {activeTab === 'operators' && <OperatorsMgmtView operators={data.operators} confirmBox={confirmAction} apiAction={apiAction} showToast={showToast} />}
           {activeTab === 'history' && <FinanceHistoryView orders={data.rentals} searchTerm={safeSearch} apiAction={apiAction} confirmBox={confirmAction} showToast={showToast} />}
           
-          {/* Swapped UserEditorView with the new ClientsView and SuppliersView */}
-          {activeTab === 'clients' && <ClientsView clients={data.users.filter((u: any) => u.role === 'CLIENT')} rentalsList={data.rentals} apiAction={apiAction} />}
-          {activeTab === 'suppliers' && <SuppliersView suppliers={data.users.filter((u: any) => u.role === 'SUPPLIER')} apiAction={apiAction} />}
+        {/* Find these two lines and replace them: */}
+{activeTab === 'clients' && <ClientsView clients={data.users.filter((u: any) => u.role === 'CLIENT')} rentalsList={data.rentals} searchTerm={safeSearch} apiAction={apiAction} confirmBox={confirmAction} />}
+{activeTab === 'suppliers' && <SuppliersView suppliers={data.users.filter((u: any) => u.role === 'SUPPLIER')} rentalsList={data.rentals} searchTerm={safeSearch} apiAction={apiAction} confirmBox={confirmAction} />}
         </div>
       </main>
     </div>
