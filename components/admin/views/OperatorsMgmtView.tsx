@@ -88,11 +88,11 @@ export default function OperatorsMgmtView({ operators = [], confirmBox, apiActio
         </table>
       </div>
 
-      {/* 3. RENDER THE MODAL AT THE BOTTOM OF THE COMPONENT */}
+    {/* 3. RENDER THE MODAL AT THE BOTTOM OF THE COMPONENT */}
       {isEditModalOpen && (
         <OperatorListingModal
           isOpen={isEditModalOpen}
-          initialData={editingOperator}
+          itemToEdit={editingOperator} /* 🛡️ CRITICAL FIX: Changed 'initialData' to 'itemToEdit' */
           onClose={() => {
             setIsEditModalOpen(false);
             setEditingOperator(null);
@@ -100,9 +100,10 @@ export default function OperatorsMgmtView({ operators = [], confirmBox, apiActio
           onSuccess={() => {
             setIsEditModalOpen(false);
             setEditingOperator(null);
-            showToast("Operator updated successfully!", "success");
-            // Since 'operators' are passed as props, the parent component might 
-            // need to trigger a refresh here if it doesn't automatically update.
+            showToast("Operator saved successfully!", "success");
+            
+            // 🛡️ TIP: If the table doesn't refresh automatically after saving, 
+            // you should call your fetchAll() or apiAction() function here!
           }}
         />
       )}
