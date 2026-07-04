@@ -38,10 +38,41 @@ export default function SupplierOrderModal({ isOpen, order, onClose, onDataChang
     setIsUpdating(false);
   };
 
-  const submitTicket = () => {
+  const submitTicket = async () => {
     if (!ticketText) return showToast("Please describe the issue.", "error");
-    showToast(`Support Ticket #8492 successfully submitted to Admins.`, "success");
-    setShowTicketForm(false);
+
+    try {
+      // 🛡️ UNIVERSAL GRABBER: Find the supplier ID
+      const rawUser = localStorage.getItem('prinz_user') || localStorage.getItem('prinz_admin_user') || localStorage.getItem('user') || '{}';
+      const loggedInUser = JSON.parse(rawUser);
+
+      if (!loggedInUser.id) {
+        return showToast("Error: Cannot identify user. Please log out and log in again.", "error");
+      }
+
+      const payload = {
+        message: `Order ID [${order.id.split('-')[0].toUpperCase()}]: ${ticketText}`,
+        sender: { id: loggedInUser.id }
+      };
+
+      const fallbackToken = localStorage.getItem('prinz_token');
+      const headers: any = { "Content-Type": "application/json", ...getAuthHeaders() };
+      if (fallbackToken) headers['Authorization'] = `Bearer ${fallbackToken}`;
+
+      const res = await fetch(`${API_URL}/inquiries`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) throw new Error("Failed to send ticket.");
+
+      showToast(`Support Ticket successfully submitted to Admins.`, "success");
+      setShowTicketForm(false);
+      setTicketText('');
+    } catch (err: any) {
+      showToast(err.message || "Error submitting ticket.", "error");
+    }
   };
 
   const pipelineStages = ['PENDING', 'PREPARING', 'IN_TRANSIT', 'DELIVERED', 'COMPLETED'];
@@ -53,7 +84,6 @@ export default function SupplierOrderModal({ isOpen, order, onClose, onDataChang
         <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-900 dark:hover:text-white transition z-10 bg-white/50 dark:bg-black/50 rounded-full p-1"><X size={24} /></button>
         
         <div className="w-full md:w-1/2 bg-gray-50 dark:bg-gray-800/50 flex flex-col border-r border-gray-200 dark:border-gray-800">
-          {/* 🛡️ FIX: Fully Interactive Google Maps Embed Restored */}
           <div className="h-64 md:h-72 w-full bg-gray-200 relative border-b border-gray-200 dark:border-gray-800">
             <iframe 
               width="100%" height="100%" frameBorder="0" scrolling="yes" marginHeight={0} marginWidth={0} 
@@ -110,7 +140,6 @@ export default function SupplierOrderModal({ isOpen, order, onClose, onDataChang
           </div>
 
           <div className="mt-auto space-y-4">
-            {/* 🛡️ FIX: Integrated Support Ticket Form */}
             {showTicketForm ? (
               <div className="animate-fade-in bg-red-50 dark:bg-red-900/10 p-5 rounded-2xl border border-red-200 dark:border-red-900/30">
                 <label className="block text-xs font-black text-red-900 dark:text-red-400 uppercase tracking-widest mb-2 flex items-center gap-2"><ShieldAlert size={14}/> Submit Admin Escalation</label>

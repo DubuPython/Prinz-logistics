@@ -1,9 +1,12 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { MapPin, Truck, CheckCircle2, ShieldAlert, FileText, RefreshCw, X, HardHat, Phone } from "lucide-react";
+import { MapPin, Truck, CheckCircle2, ShieldAlert, FileText, RefreshCw, X, HardHat, Phone, Headset } from "lucide-react";
+import { API_URL, getAuthHeaders } from "../../lib/utils";
 
 export default function LiveTrackingView({ activeTracking, onViewReceipt, onClearTracking, onDataChange, showToast }: any) {
   const [isSyncing, setIsSyncing] = useState(false);
+  const [showTicketForm, setShowTicketForm] = useState(false);
+  const [ticketText, setTicketText] = useState('');
 
   useEffect(() => {
     const radar = setInterval(() => { onDataChange(); }, 8000); 
@@ -14,6 +17,39 @@ export default function LiveTrackingView({ activeTracking, onViewReceipt, onClea
     setIsSyncing(true);
     await onDataChange();
     setTimeout(() => setIsSyncing(false), 800);
+  };
+
+  const submitTicket = async () => {
+    if (!ticketText) return showToast("Please describe the issue.", "error");
+
+    try {
+      // 🛡️ UNIVERSAL GRABBER: Find the client ID
+      const rawUser = localStorage.getItem('prinz_user') || localStorage.getItem('user') || '{}';
+      const loggedInUser = JSON.parse(rawUser);
+
+      if (!loggedInUser.id) {
+        return showToast("Error: Cannot identify user. Please log out and log in again.", "error");
+      }
+
+      const payload = {
+        message: `Order ID [${activeTracking.id.split('-')[0].toUpperCase()}]: ${ticketText}`,
+        sender: { id: loggedInUser.id }
+      };
+
+      const res = await fetch(`${API_URL}/inquiries`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) throw new Error("Failed to send ticket.");
+
+      showToast(`Support Ticket successfully submitted to Admins.`, "success");
+      setShowTicketForm(false);
+      setTicketText('');
+    } catch (err: any) {
+      showToast(err.message || "Error submitting ticket.", "error");
+    }
   };
 
   if (!activeTracking) return null;
@@ -46,7 +82,6 @@ export default function LiveTrackingView({ activeTracking, onViewReceipt, onClea
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 flex flex-col gap-8">
           
-          {/* 🛡️ FIX: Fully Interactive Google Maps Embed Restored */}
           <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl overflow-hidden shadow-sm h-80 relative flex-shrink-0">
             <iframe 
               width="100%" height="100%" frameBorder="0" scrolling="yes" marginHeight={0} marginWidth={0} 
@@ -104,9 +139,30 @@ export default function LiveTrackingView({ activeTracking, onViewReceipt, onClea
             </div>
           )}
 
-          {isFinished && (
-            <button onClick={onClearTracking} className="w-full py-4 bg-[#111827] text-white font-black rounded-xl uppercase tracking-widest transition shadow-lg hover:opacity-90">Acknowledge & Close Tracker</button>
-          )}
+          {/* 🛡️ NEW: Support Integration for Client Tracker */}
+          <div className="mt-4 space-y-4">
+            {showTicketForm ? (
+              <div className="animate-fade-in bg-red-50 p-4 rounded-xl border border-red-200">
+                <label className="block text-xs font-black text-red-900 uppercase tracking-widest mb-2 flex items-center gap-2"><ShieldAlert size={14}/> Support Request</label>
+                <textarea className="w-full bg-white border border-red-200 rounded-lg p-3 text-sm outline-none resize-none mb-2" rows={3} placeholder="Describe the issue..." value={ticketText} onChange={e => setTicketText(e.target.value)}></textarea>
+                <div className="flex gap-2">
+                  <button onClick={() => setShowTicketForm(false)} className="flex-1 py-2 bg-gray-200 text-gray-700 font-black rounded-lg text-xs uppercase tracking-widest">Cancel</button>
+                  <button onClick={submitTicket} className="flex-1 py-2 bg-red-600 text-white font-black rounded-lg text-xs uppercase tracking-widest shadow-md">Submit</button>
+                </div>
+              </div>
+            ) : (
+              !isFinished && (
+                <button onClick={() => setShowTicketForm(true)} className="w-full py-3 bg-red-50 text-red-600 font-black rounded-xl text-xs uppercase tracking-widest transition flex items-center justify-center gap-2 border border-transparent hover:border-red-200">
+                  <Headset size={16} /> Contact Support
+                </button>
+              )
+            )}
+
+            {isFinished && (
+              <button onClick={onClearTracking} className="w-full py-4 bg-[#111827] text-white font-black rounded-xl uppercase tracking-widest transition shadow-lg hover:opacity-90">Acknowledge & Close Tracker</button>
+            )}
+          </div>
+
         </div>
       </div>
     </div>

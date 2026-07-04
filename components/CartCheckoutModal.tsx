@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from 'react';
-import { X, ShoppingCart, ShieldCheck, Trash2, MapPin, Calendar, Edit, UserPlus } from 'lucide-react';
+import { X, ShoppingCart, ShieldCheck, Trash2, MapPin, Calendar, Edit, UserPlus, PackageSearch } from 'lucide-react';
 import { API_URL } from '../lib/utils';
 
 export default function CartCheckoutModal({ isOpen, cartItems, user, onClose, onRemoveItem, onEditItem, showToast }: any) {
@@ -24,7 +24,10 @@ export default function CartCheckoutModal({ isOpen, cartItems, user, onClose, on
     const calcVat = cartItem.vat || ((base + opFee) * 0.12);
     const grand = cartItem.totalCost || cartItem.grandTotal || (base + opFee + calcVat);
 
-    return { loc, startRaw, endRaw, needOp, diffDays, base, opFee, calcVat, grand };
+    // 🛡️ CRITICAL FIX: Safely extract the image from wherever it might be nested
+    const image = cartItem.equipment?.imageUrl || cartItem.imageUrl || null;
+
+    return { loc, startRaw, endRaw, needOp, diffDays, base, opFee, calcVat, grand, image };
   };
 
   const globalBaseTotal = cartItems.reduce((sum: number, item: any) => sum + getSafeItemData(item).base, 0);
@@ -119,7 +122,16 @@ export default function CartCheckoutModal({ isOpen, cartItems, user, onClose, on
                   const safeData = getSafeItemData(cartItem);
                   return (
                     <div key={idx} className="flex gap-5 p-5 bg-white border border-orange-200 rounded-2xl relative shadow-sm">
-                       <img src={cartItem.equipment?.imageUrl} className="w-28 h-28 rounded-xl object-cover shadow-sm bg-gray-200" />
+                       
+                       {/* 🛡️ CRITICAL FIX: Render the image if it exists, otherwise show a clean fallback icon */}
+                       {safeData.image ? (
+                         <img src={safeData.image} alt={cartItem.equipment?.modelName} className="w-28 h-28 rounded-xl object-cover shadow-sm bg-gray-200 border border-gray-100" />
+                       ) : (
+                         <div className="w-28 h-28 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-400 shadow-sm">
+                           <PackageSearch size={32} />
+                         </div>
+                       )}
+
                        <div className="flex-1 flex flex-col justify-between">
                           <div className="flex justify-between items-start mb-2">
                             <div>
@@ -127,7 +139,6 @@ export default function CartCheckoutModal({ isOpen, cartItems, user, onClose, on
                               <p className="font-black text-gray-900 text-lg leading-tight">{cartItem.equipment?.modelName}</p>
                             </div>
                             <div className="flex items-center gap-2">
-                              {/* 🛡️ FIX: Edit function successfully bound */}
                               <button onClick={() => onEditItem(idx)} className="p-2 bg-gray-100 text-gray-600 hover:text-white hover:bg-gray-900 rounded-lg shadow-sm transition" title="Edit Item">
                                 <Edit size={16}/>
                               </button>
