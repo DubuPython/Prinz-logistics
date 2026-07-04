@@ -20,11 +20,9 @@ export default function SupplierDashboardView({
   const [activeTab, setActiveTab] = useState('OVERVIEW'); 
   const [managingOrder, setManagingOrder] = useState<any>(null);
   
-  // New States for Document Upload
   const [isUploading, setIsUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  // Data Filtering (Your existing logic)
   const myOrders = rentalsList.filter((r: any) => r.supplier?.id === user.id);
   const activeOrders = myOrders.filter((r: any) => r.status !== 'COMPLETED' && r.status !== 'CANCELLED');
   const historyOrders = myOrders.filter((r: any) => r.status === 'COMPLETED' || r.status === 'CANCELLED');
@@ -59,27 +57,19 @@ export default function SupplierDashboardView({
     { id: 'OPERATORS', icon: <Users size={16} />, label: 'Operators' }
   ];
 
- // ==========================================
-  // DOCUMENT UPLOAD HANDLER
-  // Converts image to Base64 and sends to backend
-  // ==========================================
   const handleDocumentSubmit = async () => {
-    console.log("Submit button clicked!"); // 🛡️ ADD THIS
-    console.log("Current selected file:", selectedFile); // 🛡️ ADD THIS
     if (!selectedFile) return showToast("Please select a document first.", "error");
     setIsUploading(true);
 
     try {
-      // 1. Convert file to Base64 string for easy database storage
       const reader = new FileReader();
-      reader.readAsDataURL(selectedFile);
+      
       reader.onloadend = async () => {
         const base64String = reader.result;
 
-        // 2. Send the document string to your users endpoint
+        // 🛡️ FIX: Using the correct header and stringified body
         const res = await fetch(`${API_URL}/users/${user.id}`, {
           method: 'PATCH',
-          // 🛡️ CRITICAL FIX: Added Content-Type so the backend processes the JSON body
           headers: {
             'Content-Type': 'application/json',
             ...getAuthHeaders()
@@ -87,24 +77,25 @@ export default function SupplierDashboardView({
           body: JSON.stringify({ documentUrl: base64String })
         });
 
-        if (!res.ok) throw new Error("Upload failed");
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error(errText || "Upload failed");
+        }
         
         showToast("Document submitted successfully!", "success");
-        onDataChange(); // Refreshes the user data
+        onDataChange(); 
       };
+
+      reader.readAsDataURL(selectedFile);
     } catch (error) {
+      console.error("Upload error:", error);
       showToast("Error submitting document.", "error");
     } finally {
       setIsUploading(false);
     }
   };
 
-  // ==========================================
-  // THE VERIFICATION BLOCKER (UPGRADED)
-  // ==========================================
   if (user?.status === 'PENDING_DOCS') {
-    
-    // STATE 1: If they HAVEN'T uploaded a document yet, show the upload form
     if (!user?.documentUrl) {
       return (
         <div className="flex flex-col items-center justify-center min-h-[75vh] text-center px-4 animate-fade-in">
@@ -149,7 +140,6 @@ export default function SupplierDashboardView({
       );
     }
 
-    // STATE 2: If they HAVE uploaded a document, show the "Under Review" screen
     return (
       <div className="flex flex-col items-center justify-center min-h-[75vh] text-center px-4 animate-fade-in">
         <div className="p-10 bg-white dark:bg-gray-900 rounded-3xl shadow-xl border border-gray-200 dark:border-gray-800 max-w-lg relative overflow-hidden">
@@ -170,7 +160,6 @@ export default function SupplierDashboardView({
       </div>
     );
   }
-  // ==========================================
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 animate-fade-in">
