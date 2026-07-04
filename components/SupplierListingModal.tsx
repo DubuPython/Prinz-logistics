@@ -51,9 +51,12 @@ export default function SupplierListingModal({ isOpen, itemToEdit, user, onClose
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+ const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      // 🛡️ 1. Grab the logged-in user from your browser's local storage
+      const loggedInUser = JSON.parse(localStorage.getItem('prinz_admin_user') || '{}');
+
       const payload = {
         modelName: formData.name,       
         category: formData.category,    
@@ -61,7 +64,9 @@ export default function SupplierListingModal({ isOpen, itemToEdit, user, onClose
         location: formData.location,
         specs: formData.description,    
         status: formData.status,
-        imageUrl: formData.imageUrl
+        imageUrl: formData.imageUrl,
+        // 🛡️ 2. CLAIM OWNERSHIP: Attach the ID so the data isn't orphaned!
+        supplier: { id: loggedInUser.id } 
       };
 
       const endpoint = itemToEdit ? `${API_URL}/equipment/${itemToEdit.id}` : `${API_URL}/equipment`;
@@ -81,7 +86,7 @@ export default function SupplierListingModal({ isOpen, itemToEdit, user, onClose
       showToast(err.message || "Failed to save equipment.", "error");
     }
   };
-
+  
   return (
     <div className="fixed inset-0 bg-black/80 z-[70] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in overflow-y-auto">
       <div className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden relative p-8 my-8">

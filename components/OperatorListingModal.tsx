@@ -37,40 +37,42 @@ export default function OperatorListingModal({ isOpen, itemToEdit, onClose, onSu
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+ const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // 🛡️ THE FIX: Grab your logged-in profile from local storage
+    const loggedInUser = JSON.parse(localStorage.getItem('prinz_admin_user') || '{}');
+    
+    // 🛡️ THE FIX: Package the form data AND claim ownership as the supplier
+    const payload = {
+      ...formData,
+      supplier: { id: loggedInUser.id } 
+    };
+
     const endpoint = itemToEdit ? `/operators/${itemToEdit.id}` : `/operators`;
     const method = itemToEdit ? "PATCH" : "POST";
 
-    // 🛡️ CRITICAL FIX: Use apiAction to handle the network request, the toasts, AND the table refresh!
     if (apiAction) {
       const success = await apiAction(
         endpoint, 
         method, 
-        formData, 
+        payload, // 👈 Send the NEW payload with the supplier attached!
         `Operator ${itemToEdit ? 'updated' : 'added'} successfully!`
       );
       if (success) onSuccess();
     } else {
-      // Fallback just in case this modal is opened from a page without apiAction
       try {
         const res = await fetch(`${API_URL}${endpoint}`, {
           method,
           headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-          body: JSON.stringify(formData)
+          body: JSON.stringify(payload) // 👈 Send the NEW payload here too!
         });
         
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.message || "Failed to save operator.");
-        }
-        
+        if (!res.ok) throw new Error("Failed to save operator.");
         if (showToast) showToast(`Operator ${itemToEdit ? 'updated' : 'added'} successfully!`, "success");
         onSuccess();
       } catch (err: any) {
         if (showToast) showToast(err.message, "error");
-        else alert(err.message);
       }
     }
   };
