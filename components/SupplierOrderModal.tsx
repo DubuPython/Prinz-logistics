@@ -42,7 +42,7 @@ export default function SupplierOrderModal({ isOpen, order, onClose, onDataChang
     if (!ticketText) return showToast("Please describe the issue.", "error");
 
     try {
-      // 🛡️ UNIVERSAL GRABBER: Find the supplier ID
+      // 1. Grab the user
       const rawUser = localStorage.getItem('prinz_user') || localStorage.getItem('prinz_admin_user') || localStorage.getItem('user') || '{}';
       const loggedInUser = JSON.parse(rawUser);
 
@@ -50,9 +50,12 @@ export default function SupplierOrderModal({ isOpen, order, onClose, onDataChang
         return showToast("Error: Cannot identify user. Please log out and log in again.", "error");
       }
 
+      // 🛡️ THE FIX: Match the backend entity perfectly!
       const payload = {
-        message: `Order ID [${order.id.split('-')[0].toUpperCase()}]: ${ticketText}`,
-        sender: { id: loggedInUser.id }
+        orderId: order.id,
+        type: "ESCALATION",
+        user: loggedInUser.firstName || loggedInUser.email || loggedInUser.id, // Sends a string!
+        message: ticketText
       };
 
       const fallbackToken = localStorage.getItem('prinz_token');
