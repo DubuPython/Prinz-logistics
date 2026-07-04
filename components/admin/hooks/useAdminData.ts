@@ -18,6 +18,10 @@ export function useAdminData(showToast: (msg: string, type: 'info' | 'success' |
   };
 
   const fetchAll = async () => {
+    // 🛡️ CRITICAL FIX 1: Do not fetch if there is no token (Stops the 401s on login screen)
+    const token = localStorage.getItem('prinz_token');
+    if (!token) return;
+
     const fetchConfig: RequestInit = { 
       headers: getAuthHeaders() as HeadersInit, 
       cache: 'no-store', 
@@ -33,15 +37,15 @@ export function useAdminData(showToast: (msg: string, type: 'info' | 'success' |
         fetch(`${API_URL}/inquiries`, fetchConfig)
       ]);
 
-      // 🛑 THE PANIC LOOP FIX IS HERE 🛑
       if (usersRes.status === 401 || usersRes.status === 403) {
-        console.error("Backend rejected the token. Status:", usersRes.status);
-        showToast(`Access Restricted: Backend rejected authentication (${usersRes.status}).`, "error");
-        
-        // We removed the code that aggressively wipes local storage and logs you out!
-        // You will now stay on the dashboard so you can actually see what is happening.
-        setAuth(prev => ({ ...prev, isLoading: false }));
+        setAuth(prev => ({ ...prev, isAuthenticated: false, isLoading: false }));
         return; 
+      }
+      
+      if (usersRes.status === 429) {
+        showToast("Rate limit reached. Please wait a moment.", "error");
+        setAuth(prev => ({ ...prev, isLoading: false }));
+        return;
       }
 
       setData({
@@ -69,14 +73,15 @@ export function useAdminData(showToast: (msg: string, type: 'info' | 'success' |
 
   useEffect(() => {
     const savedAdmin = localStorage.getItem('prinz_admin_user');
+    const token = localStorage.getItem('prinz_token');
     
-    if (savedAdmin && savedAdmin !== "undefined") {
+    // 🛡️ CRITICAL FIX 2: Only authenticate if BOTH the user and token exist
+    if (savedAdmin && savedAdmin !== "undefined" && token) {
       setAuth({ isAuthenticated: true, adminUser: JSON.parse(savedAdmin), isLoading: true });
       fetchAll();
-      const poller = setInterval(fetchAll, 15000);
-      return () => clearInterval(poller);
+      // 🛡️ CRITICAL FIX 3: setInterval has been deleted! No more 429 spam!
     } else {
-      setAuth(prev => ({ ...prev, isLoading: false }));
+      setAuth(prev => ({ ...prev, isLoading: false, isAuthenticated: false }));
     }
   }, []);
 
@@ -98,9 +103,7 @@ export function useAdminData(showToast: (msg: string, type: 'info' | 'success' |
         throw new Error("Access Denied: You do not have Administrator privileges.");
       }
       
-      if (token) {
-        localStorage.setItem('prinz_token', token);
-      }
+      if (token) localStorage.setItem('prinz_token', token);
       localStorage.setItem('prinz_admin_user', JSON.stringify(user));
       
       setAuth({ isAuthenticated: true, adminUser: user, isLoading: true });
@@ -132,12 +135,18 @@ export function useAdminData(showToast: (msg: string, type: 'info' | 'success' |
         credentials: 'include', 
         body: payload ? JSON.stringify(payload) : undefined
       });
-      if (!res.ok) throw new Error(await res.text() || "Action failed.");
-      await fetchAll();
+      
+      if (!res.ok) {
+        // 🛡️ CRITICAL FIX 4: Extract the exact error message from your NestJS backend
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.message || await res.text() || "Action failed.");
+      }
+      
+      await fetchAll(); // Refresh data manually after an action instead of polling
       if (successMsg) showToast(successMsg, "success");
       return true;
     } catch (err: any) {
-      showToast("Operation failed: Check connection or privileges.", "error");
+      showToast(err.message || "Operation failed.", "error");
       return false;
     }
   };

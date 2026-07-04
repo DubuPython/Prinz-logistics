@@ -40,9 +40,23 @@ export default function OperatorsMgmtView({ operators = [], confirmBox, apiActio
                 </td>
                 <td className="px-6 py-4 font-bold text-gray-900">{op.supplier?.firstName || 'Unknown'}</td>
                 <td className="px-6 py-4 text-gray-500 font-medium">{op.expertise}</td>
-                <td className="px-6 py-4 text-center">
-                  <span className="w-3 h-3 bg-blue-500 rounded-full inline-block"></span>
-                </td>
+                <td className="px-6 py-4">
+  {op.status === 'ACTIVE' && (
+    <span className="px-2 py-1 bg-green-100 text-green-700 font-bold text-[10px] rounded uppercase tracking-widest border border-green-200">
+      Active
+    </span>
+  )}
+  {op.status === 'UNAVAILABLE' && (
+    <span className="px-2 py-1 bg-red-100 text-red-700 font-bold text-[10px] rounded uppercase tracking-widest border border-red-200">
+      Unavailable
+    </span>
+  )}
+  {op.status !== 'ACTIVE' && op.status !== 'UNAVAILABLE' && (
+    <span className="px-2 py-1 bg-blue-100 text-blue-700 font-bold text-[10px] rounded uppercase tracking-widest border border-blue-200">
+      {op.status || 'UNKNOWN'}
+    </span>
+  )}
+</td>
                 <td className="px-6 py-4 text-right">
                   <div className="flex justify-end gap-2">
                     

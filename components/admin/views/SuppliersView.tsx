@@ -42,7 +42,8 @@ export default function SuppliersView({ suppliers = [], rentalsList = [], apiAct
   
   const handleGenPass = async (id: string) => {
     const newPass = Math.random().toString(36).slice(-8) + "A1!";
-    const success = await apiAction(`/users/${id}`, 'PATCH', { passwordHash: newPass }, "Password generated!");
+    // 🛡️ FIX: Changed "passwordHash" to "password" to trigger the backend hash logic!
+    const success = await apiAction(`/users/${id}`, 'PATCH', { password: newPass }, "Password generated!");
     if (success) setGeneratedPass(newPass);
   };
 
