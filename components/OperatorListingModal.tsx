@@ -99,8 +99,18 @@ export default function OperatorListingModal({ isOpen, itemToEdit, onClose, onSu
 
           <div><label className="block text-xs font-black uppercase mb-1">Full Name</label><input type="text" required className="w-full px-4 py-3 bg-gray-50 border rounded-xl outline-none" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} /></div>
           
-          <div><label className="block text-xs font-black uppercase mb-1">Primary Role</label><select className="w-full px-4 py-3 bg-gray-50 border rounded-xl outline-none" value={formData.expertise} onChange={e => setFormData({...formData, expertise: e.target.value})}><option value="Heavy Machinery Operator">Heavy Machinery Operator</option><option value="Transport & Truck Driver">Transport & Truck Driver</option><option value="Crane & Lifting Specialist">Crane & Lifting Specialist</option></select></div>
-          
+          <div>
+  <label className="block text-xs font-black uppercase mb-1">Primary Role</label>
+  <select 
+    className="w-full px-4 py-3 bg-gray-50 border rounded-xl outline-none" 
+    value={formData.expertise} 
+    onChange={e => setFormData({...formData, expertise: e.target.value})}
+  >
+    <option value="Heavy Machinery Operator">Heavy Machinery Operator</option>
+    <option value="Truck & Transport Driver">Truck & Transport Driver</option>
+    <option value="Construction Specialist">Construction Specialist</option>
+  </select>
+</div> 
           <div>
             <label className="block text-xs font-black uppercase mb-1">Status</label>
             <select className="w-full px-4 py-3 bg-gray-50 border rounded-xl outline-none" value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})}>

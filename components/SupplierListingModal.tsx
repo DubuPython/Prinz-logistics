@@ -97,13 +97,18 @@ export default function SupplierListingModal({ isOpen, itemToEdit, user, onClose
               <input type="text" required className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border rounded-xl outline-none dark:text-white" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
             </div>
             <div>
-              <label className="block text-xs font-black text-gray-900 dark:text-white uppercase mb-1">Category</label>
-              <select className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border rounded-xl outline-none dark:text-white" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}>
-                <option value="HEAVY_MACHINERY">Heavy Machinery</option>
-                <option value="LIGHT_EQUIPMENT">Light Equipment</option>
-                <option value="TRANSPORT">Transport</option>
-              </select>
-            </div>
+  <label className="block text-xs font-black uppercase mb-1">Category</label>
+  <select 
+    className="w-full px-4 py-3 bg-gray-50 border rounded-xl outline-none" 
+    value={formData.category} 
+    onChange={e => setFormData({...formData, category: e.target.value})}
+  >
+    {/* The 'value' MUST exactly match the backend ENUM, but the text inside can be pretty! */}
+    <option value="HEAVY_MACHINERY">Heavy Machinery</option>
+    <option value="TRUCK">Trucks & Transport</option>
+    <option value="CONSTRUCTION">Construction & Light Equipment</option>
+  </select>
+</div>
             <div>
               <label className="block text-xs font-black text-gray-900 dark:text-white uppercase mb-1">Daily Rate (₱)</label>
               <input type="number" required min="1" className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border rounded-xl outline-none dark:text-white" value={formData.rentalPricePerDay} onChange={e => setFormData({...formData, rentalPricePerDay: e.target.value})} />
