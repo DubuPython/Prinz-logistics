@@ -33,7 +33,7 @@ export default function SuppliersView({ suppliers = [], rentalsList = [], apiAct
     e.preventDefault();
     const isEditing = !!editingUser.id;
     const payload = { ...editingUser, role: 'SUPPLIER' };
-    if (!isEditing) payload.passwordHash = 'AdminCreated123!';
+    if (!isEditing) payload.password = 'AdminCreated123!';
     const success = await apiAction(isEditing ? `/users/${editingUser.id}` : '/users', isEditing ? 'PATCH' : 'POST', payload, `Supplier ${isEditing ? 'updated' : 'added'} successfully.`);
     if (success) setEditingUser(null);
   };
@@ -111,7 +111,6 @@ export default function SuppliersView({ suppliers = [], rentalsList = [], apiAct
                 <td className="px-6 py-4 text-right flex justify-end items-center gap-2">
                   <button onClick={() => setEditingUser(supplier)} className="p-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors" title="Edit Supplier"><Edit size={16}/></button>
                   
-                  {/* 🛡️ FIX: Document button is now ALWAYS visible if a document exists! */}
                   {supplier.documentUrl && (
                     <button onClick={() => setViewingDoc(supplier.documentUrl)} className="flex items-center gap-1 px-3 py-2 bg-gray-100 text-gray-700 text-xs font-bold rounded hover:bg-gray-200 transition-colors"><Eye size={14} /> View Doc</button>
                   )}

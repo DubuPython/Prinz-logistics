@@ -3,7 +3,6 @@ import React, { useState, useEffect } from "react";
 import { X, HardHat, Camera } from "lucide-react";
 import { API_URL, getAuthHeaders } from "../lib/utils";
 
-// 🛡️ Notice we added `apiAction` to the props here!
 export default function OperatorListingModal({ isOpen, itemToEdit, onClose, onSuccess, showToast, apiAction }: any) {
   const [formData, setFormData] = useState({ 
     name: '', expertise: 'Heavy Machinery Operator', contactNumber: '', licenses: '', profileImageUrl: '', status: 'ACTIVE' 
@@ -40,7 +39,7 @@ export default function OperatorListingModal({ isOpen, itemToEdit, onClose, onSu
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // 🛡️ THE FIX: Universally check all possible login keys
+    // 🛡️ UNIVERSAL GRABBER: Finds the ID no matter how you logged in
     const rawUser = localStorage.getItem('prinz_user') 
                  || localStorage.getItem('prinz_admin_user') 
                  || localStorage.getItem('user') 
@@ -48,14 +47,13 @@ export default function OperatorListingModal({ isOpen, itemToEdit, onClose, onSu
                  
     const loggedInUser = JSON.parse(rawUser);
 
-    // 🛡️ SAFETY CHECK: Stop the form and warn you if the ID is missing!
     if (!loggedInUser.id) {
       if (showToast) showToast("Error: Cannot identify user. Please log out and log in again.", "error");
       else alert("Error: Cannot identify user.");
       return;
     }
     
-    // 🛡️ THE FIX: Package the form data AND claim ownership as the supplier
+    // 🛡️ CLAIM OWNERSHIP: Attaches the supplier ID to prevent orphaned data
     const payload = {
       ...formData,
       supplier: { id: loggedInUser.id } 

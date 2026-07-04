@@ -23,11 +23,12 @@ export default function SupplierDashboardView({
   const [isUploading, setIsUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  const myOrders = rentalsList.filter((r: any) => r.supplier?.id === user.id);
+  // 🛡️ Safe checks and accurate order filtering
+  const myOrders = rentalsList.filter((r: any) => r.supplier?.id === user?.id || r.equipment?.supplier?.id === user?.id);
   const activeOrders = myOrders.filter((r: any) => r.status !== 'COMPLETED' && r.status !== 'CANCELLED');
   const historyOrders = myOrders.filter((r: any) => r.status === 'COMPLETED' || r.status === 'CANCELLED');
-  const myFleet = equipmentList.filter((e: any) => e.supplier?.id === user.id);
-  const myOperators = operatorsList.filter((op: any) => op.supplier?.id === user.id);
+  const myFleet = equipmentList.filter((e: any) => e.supplier?.id === user?.id);
+  const myOperators = operatorsList.filter((op: any) => op.supplier?.id === user?.id);
 
   const completedOrders = historyOrders.filter((r: any) => r.status === 'COMPLETED');
   const totalRevenue = completedOrders.reduce((sum: number, r: any) => sum + Number(r.totalCost || 0), 0);
@@ -67,7 +68,6 @@ export default function SupplierDashboardView({
       reader.onloadend = async () => {
         const base64String = reader.result;
 
-        // 🛡️ FIX: Using the correct header and stringified body
         const res = await fetch(`${API_URL}/users/${user.id}`, {
           method: 'PATCH',
           headers: {
@@ -296,7 +296,18 @@ export default function SupplierDashboardView({
                     <p className="text-gray-500 text-sm mt-1 mb-4 font-medium">{eq.location}</p>
                   </div>
                   <div className="flex items-center justify-between mt-4 border-t border-gray-100 dark:border-gray-800 pt-4">
-                    <span className="font-black text-green-600 text-lg">₱{Number(eq.rentalPricePerDay).toLocaleString()}<span className="text-sm text-gray-500">/day</span></span>
+                    
+                    {/* 🛡️ DYNAMIC STATUS UI INJECTED HERE */}
+                    <div className="flex flex-col">
+                      <span className="font-black text-green-600 text-lg">₱{Number(eq.rentalPricePerDay).toLocaleString()}<span className="text-sm text-gray-500">/day</span></span>
+                      <div className="flex items-center gap-1 mt-1">
+                        {eq.status === 'AVAILABLE' && <span className="flex items-center gap-1 text-xs font-bold text-green-600"><div className="w-2 h-2 rounded-full bg-green-500"></div> Available</span>}
+                        {eq.status === 'ON_RENT' && <span className="flex items-center gap-1 text-xs font-bold text-blue-600"><div className="w-2 h-2 rounded-full bg-blue-500"></div> On Rent</span>}
+                        {eq.status === 'MAINTENANCE' && <span className="flex items-center gap-1 text-xs font-bold text-red-600"><div className="w-2 h-2 rounded-full bg-red-500"></div> Maintenance</span>}
+                        {!['AVAILABLE', 'ON_RENT', 'MAINTENANCE'].includes(eq.status) && <span className="flex items-center gap-1 text-xs font-bold text-gray-600"><div className="w-2 h-2 rounded-full bg-gray-500"></div> {eq.status || 'AVAILABLE'}</span>}
+                      </div>
+                    </div>
+
                     <button onClick={() => onEditEquipment(eq)} className="text-gray-400 hover:text-orange-600 transition bg-gray-50 dark:bg-gray-800 p-2.5 rounded-xl border border-transparent dark:border-gray-700"><Settings2 size={18} /></button>
                   </div>
                </div>
