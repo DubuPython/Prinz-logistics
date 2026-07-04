@@ -37,11 +37,23 @@ export default function OperatorListingModal({ isOpen, itemToEdit, onClose, onSu
     }
   };
 
- const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // 🛡️ THE FIX: Grab your logged-in profile from local storage
-    const loggedInUser = JSON.parse(localStorage.getItem('prinz_admin_user') || '{}');
+    // 🛡️ THE FIX: Universally check all possible login keys
+    const rawUser = localStorage.getItem('prinz_user') 
+                 || localStorage.getItem('prinz_admin_user') 
+                 || localStorage.getItem('user') 
+                 || '{}';
+                 
+    const loggedInUser = JSON.parse(rawUser);
+
+    // 🛡️ SAFETY CHECK: Stop the form and warn you if the ID is missing!
+    if (!loggedInUser.id) {
+      if (showToast) showToast("Error: Cannot identify user. Please log out and log in again.", "error");
+      else alert("Error: Cannot identify user.");
+      return;
+    }
     
     // 🛡️ THE FIX: Package the form data AND claim ownership as the supplier
     const payload = {
@@ -56,7 +68,7 @@ export default function OperatorListingModal({ isOpen, itemToEdit, onClose, onSu
       const success = await apiAction(
         endpoint, 
         method, 
-        payload, // 👈 Send the NEW payload with the supplier attached!
+        payload, 
         `Operator ${itemToEdit ? 'updated' : 'added'} successfully!`
       );
       if (success) onSuccess();
@@ -65,7 +77,7 @@ export default function OperatorListingModal({ isOpen, itemToEdit, onClose, onSu
         const res = await fetch(`${API_URL}${endpoint}`, {
           method,
           headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-          body: JSON.stringify(payload) // 👈 Send the NEW payload here too!
+          body: JSON.stringify(payload)
         });
         
         if (!res.ok) throw new Error("Failed to save operator.");
@@ -102,17 +114,18 @@ export default function OperatorListingModal({ isOpen, itemToEdit, onClose, onSu
           <div><label className="block text-xs font-black uppercase mb-1">Full Name</label><input type="text" required className="w-full px-4 py-3 bg-gray-50 border rounded-xl outline-none" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} /></div>
           
           <div>
-  <label className="block text-xs font-black uppercase mb-1">Primary Role</label>
-  <select 
-    className="w-full px-4 py-3 bg-gray-50 border rounded-xl outline-none" 
-    value={formData.expertise} 
-    onChange={e => setFormData({...formData, expertise: e.target.value})}
-  >
-    <option value="Heavy Machinery Operator">Heavy Machinery Operator</option>
-    <option value="Truck & Transport Driver">Truck & Transport Driver</option>
-    <option value="Construction Specialist">Construction Specialist</option>
-  </select>
-</div> 
+            <label className="block text-xs font-black uppercase mb-1">Primary Role</label>
+            <select 
+              className="w-full px-4 py-3 bg-gray-50 border rounded-xl outline-none" 
+              value={formData.expertise} 
+              onChange={e => setFormData({...formData, expertise: e.target.value})}
+            >
+              <option value="Heavy Machinery Operator">Heavy Machinery Operator</option>
+              <option value="Truck & Transport Driver">Truck & Transport Driver</option>
+              <option value="Construction Specialist">Construction Specialist</option>
+            </select>
+          </div> 
+          
           <div>
             <label className="block text-xs font-black uppercase mb-1">Status</label>
             <select className="w-full px-4 py-3 bg-gray-50 border rounded-xl outline-none" value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})}>
