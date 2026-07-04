@@ -1,8 +1,26 @@
 import { useState, useEffect } from "react";
+import useSWR from "swr"; // 🛡️ Import SWR
 import { API_URL } from "../../../lib/utils";
 
+// 🛡️ 1. GLOBAL FETCHER: This tells SWR how to grab data securely
+const fetcher = async (url: string) => {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('prinz_token') : null;
+  const headers: Record<string, string> = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+  const res = await fetch(url, {
+    headers,
+    cache: 'no-store',
+    credentials: 'include'
+  });
+
+  if (res.status === 401 || res.status === 403) throw new Error("Unauthorized");
+  if (res.status === 429) throw new Error("Rate limit reached");
+  if (!res.ok) throw new Error("Failed to fetch data");
+  
+  return res.json();
+};
+
 export function useAdminData(showToast: (msg: string, type: 'info' | 'success' | 'error') => void) {
-  const [data, setData] = useState({ fleet: [] as any[], users: [] as any[], rentals: [] as any[], operators: [] as any[], inquiries: [] as any[] });
   const [auth, setAuth] = useState({ isAuthenticated: false, adminUser: null as any, isLoading: true });
   const [ratings, setRatings] = useState<Record<string, { sum: number, count: number }>>({});
 
@@ -10,78 +28,42 @@ export function useAdminData(showToast: (msg: string, type: 'info' | 'success' |
     const headers: Record<string, string> = {};
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('prinz_token');
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
+      if (token) headers['Authorization'] = `Bearer ${token}`;
     }
     return headers;
   };
 
+  // 🛡️ 2. SWR AUTO-FETCHING MAGIC
+  // This ONLY fetches if `auth.isAuthenticated` is true, stopping 401 errors!
+  // revalidateOnFocus: false prevents spamming the backend when you click browser tabs
+  const swrConfig = { revalidateOnFocus: false, shouldRetryOnError: false };
+  
+  const { data: rawRentals, mutate: mutateRentals } = useSWR(auth.isAuthenticated ? `${API_URL}/rentals` : null, fetcher, swrConfig);
+  const { data: users, mutate: mutateUsers } = useSWR(auth.isAuthenticated ? `${API_URL}/users` : null, fetcher, swrConfig);
+  const { data: inquiries, mutate: mutateInquiries } = useSWR(auth.isAuthenticated ? `${API_URL}/inquiries` : null, fetcher, swrConfig);
+  const { data: fleet, mutate: mutateFleet } = useSWR(auth.isAuthenticated ? `${API_URL}/equipment` : null, fetcher, swrConfig);
+  const { data: operators, mutate: mutateOperators } = useSWR(auth.isAuthenticated ? `${API_URL}/operators` : null, fetcher, swrConfig);
+
+  // 🛡️ Handle backend pagination format safely
+  const rentals = rawRentals?.data ? rawRentals.data : rawRentals || [];
+
+  // A manual trigger just in case your UI has a "Refresh" button somewhere
   const fetchAll = async () => {
-    // 🛡️ CRITICAL FIX 1: Do not fetch if there is no token (Stops the 401s on login screen)
-    const token = localStorage.getItem('prinz_token');
-    if (!token) return;
-
-    const fetchConfig: RequestInit = { 
-      headers: getAuthHeaders() as HeadersInit, 
-      cache: 'no-store', 
-      credentials: 'include' 
-    };
-
-    try {
-      const [eqRes, usersRes, rentRes, opRes, inqRes] = await Promise.all([
-        fetch(`${API_URL}/equipment`, fetchConfig),
-        fetch(`${API_URL}/users`, fetchConfig),
-        fetch(`${API_URL}/rentals`, fetchConfig),
-        fetch(`${API_URL}/operators`, fetchConfig),
-        fetch(`${API_URL}/inquiries`, fetchConfig)
-      ]);
-
-      if (usersRes.status === 401 || usersRes.status === 403) {
-        setAuth(prev => ({ ...prev, isAuthenticated: false, isLoading: false }));
-        return; 
-      }
-      
-      if (usersRes.status === 429) {
-        showToast("Rate limit reached. Please wait a moment.", "error");
-        setAuth(prev => ({ ...prev, isLoading: false }));
-        return;
-      }
-
-      setData({
-        fleet: eqRes.ok ? await eqRes.json() : [],
-        users: usersRes.ok ? await usersRes.json() : [],
-        rentals: rentRes.ok ? await rentRes.json() : [],
-        operators: opRes.ok ? await opRes.json() : [],
-        inquiries: inqRes.ok ? await inqRes.json() : []
-      });
-      
-      try {
-        const ratingRes = await fetch(`${API_URL}/ratings`, fetchConfig);
-        if (ratingRes.ok) setRatings(await ratingRes.json());
-        else setRatings(JSON.parse(localStorage.getItem('prinz_ratings') || '{}'));
-      } catch (err) {
-        setRatings(JSON.parse(localStorage.getItem('prinz_ratings') || '{}'));
-      }
-
-      setAuth(prev => ({ ...prev, isLoading: false }));
-    } catch (err) {
-      showToast("Cannot reach backend server.", "error");
-      setAuth(prev => ({ ...prev, isLoading: false }));
-    }
+    mutateRentals();
+    mutateUsers();
+    mutateInquiries();
+    mutateFleet();
+    mutateOperators();
   };
 
   useEffect(() => {
     const savedAdmin = localStorage.getItem('prinz_admin_user');
     const token = localStorage.getItem('prinz_token');
     
-    // 🛡️ CRITICAL FIX 2: Only authenticate if BOTH the user and token exist
     if (savedAdmin && savedAdmin !== "undefined" && token) {
-      setAuth({ isAuthenticated: true, adminUser: JSON.parse(savedAdmin), isLoading: true });
-      fetchAll();
-      // 🛡️ CRITICAL FIX 3: setInterval has been deleted! No more 429 spam!
+      setAuth({ isAuthenticated: true, adminUser: JSON.parse(savedAdmin), isLoading: false });
     } else {
-      setAuth(prev => ({ ...prev, isLoading: false, isAuthenticated: false }));
+      setAuth({ isAuthenticated: false, adminUser: null, isLoading: false });
     }
   }, []);
 
@@ -106,9 +88,9 @@ export function useAdminData(showToast: (msg: string, type: 'info' | 'success' |
       if (token) localStorage.setItem('prinz_token', token);
       localStorage.setItem('prinz_admin_user', JSON.stringify(user));
       
-      setAuth({ isAuthenticated: true, adminUser: user, isLoading: true });
+      setAuth({ isAuthenticated: true, adminUser: user, isLoading: false });
       showToast("Admin access granted.", "success");
-      fetchAll(); 
+      // SWR will automatically detect isAuthenticated = true and fetch the data!
     } catch (err: any) {
       setLoginError(err.message || "Failed to connect to server.");
       setAuth(prev => ({ ...prev, isLoading: false }));
@@ -137,12 +119,18 @@ export function useAdminData(showToast: (msg: string, type: 'info' | 'success' |
       });
       
       if (!res.ok) {
-        // 🛡️ CRITICAL FIX 4: Extract the exact error message from your NestJS backend
         const errData = await res.json().catch(() => ({}));
         throw new Error(errData.message || await res.text() || "Action failed.");
       }
       
-      await fetchAll(); // Refresh data manually after an action instead of polling
+      // 🛡️ INSTANT UI UPDATES: Tell SWR to quietly refresh the specific cache we just modified!
+      if (endpoint.includes('/rentals')) mutateRentals();
+      else if (endpoint.includes('/users')) mutateUsers();
+      else if (endpoint.includes('/inquiries')) mutateInquiries();
+      else if (endpoint.includes('/equipment')) mutateFleet();
+      else if (endpoint.includes('/operators')) mutateOperators();
+      else fetchAll(); // Fallback to updating everything
+
       if (successMsg) showToast(successMsg, "success");
       return true;
     } catch (err: any) {
@@ -151,5 +139,13 @@ export function useAdminData(showToast: (msg: string, type: 'info' | 'success' |
     }
   };
 
-  return { auth, data, ratings, login, logout, fetchAll, apiAction };
+  return { 
+    auth, 
+    data: { fleet: fleet || [], users: users || [], rentals, operators: operators || [], inquiries: inquiries || [] }, 
+    ratings, 
+    login, 
+    logout, 
+    fetchAll, 
+    apiAction 
+  };
 }

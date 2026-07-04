@@ -24,7 +24,8 @@ export default function SupplierDashboardView({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   // 🛡️ Safe checks and accurate order filtering
-  const myOrders = rentalsList.filter((r: any) => r.supplier?.id === user?.id || r.equipment?.supplier?.id === user?.id);
+// ✅ NEW LOGIC: The backend already filtered it! 
+  const myOrders = rentalsList;
   const activeOrders = myOrders.filter((r: any) => r.status !== 'COMPLETED' && r.status !== 'CANCELLED');
   const historyOrders = myOrders.filter((r: any) => r.status === 'COMPLETED' || r.status === 'CANCELLED');
   const myFleet = equipmentList.filter((e: any) => e.supplier?.id === user?.id);

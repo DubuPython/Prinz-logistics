@@ -2,17 +2,16 @@
 import React from "react";
 import { Activity, Users, Truck, Banknote, Star, Trophy, TrendingUp } from "lucide-react";
 
-export default function AnalyticsView({ orders = [], suppliers = [], clients = [], ratings = [] }: any) {
+// 🛡️ Added 'stats' to the props
+export default function AnalyticsView({ stats, orders = [], suppliers = [], clients = [] }: any) {
   
-  const activeRentals = orders.filter((r: any) => r.status !== 'COMPLETED' && r.status !== 'CANCELLED');
-  const completedRentals = orders.filter((r: any) => r.status === 'COMPLETED');
-  
-  const grossRevenue = completedRentals.reduce((sum: number, r: any) => sum + Number(r.totalCost || 0), 0);
+  // 🛡️ 1. Use the pre-calculated backend stats for the heavy lifting!
+  const grossRevenue = stats?.totalRevenue || 0;
+  const activeDeployments = stats?.activeDeployments || 0;
+  const avgPlatformRating = stats?.avgRating || '0.0';
 
-  const ratedOrders = completedRentals.filter((r: any) => r.supplierRating > 0);
-  const avgPlatformRating = ratedOrders.length > 0 
-    ? (ratedOrders.reduce((sum: number, r: any) => sum + Number(r.supplierRating), 0) / ratedOrders.length).toFixed(1) 
-    : '0.0';
+  // 2. We keep the lightweight filtering here just to build the Top 5 Leaderboards
+  const completedRentals = orders.filter((r: any) => r.status === 'COMPLETED');
 
   const supplierStats = suppliers.map((supplier: any) => {
     const supOrders = completedRentals.filter((r: any) => r.supplier?.id === supplier.id);
@@ -46,7 +45,8 @@ export default function AnalyticsView({ orders = [], suppliers = [], clients = [
         <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
            <div className="w-10 h-10 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center mb-4"><Truck size={20}/></div>
            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Active Deliveries</p>
-           <p className="text-2xl font-black text-gray-900 mt-1">{activeRentals.length}</p>
+           {/* 🛡️ Replaced array length with the backend stat */}
+           <p className="text-2xl font-black text-gray-900 mt-1">{activeDeployments}</p>
         </div>
         <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
            <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center mb-4"><Users size={20}/></div>

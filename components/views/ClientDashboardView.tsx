@@ -11,7 +11,8 @@ export default function ClientDashboardView({ user, rentalsList = [], onTrackOrd
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Data Filtering
-  const myOrders = rentalsList.filter((r: any) => r.client?.id === user.id);
+  // ✅ NEW LOGIC: The backend already filtered it! 
+  const myOrders = rentalsList;
   const activeOrders = myOrders.filter((r: any) => r.status !== 'COMPLETED' && r.status !== 'CANCELLED');
   const historyOrders = myOrders.filter((r: any) => r.status === 'COMPLETED' || r.status === 'CANCELLED');
 

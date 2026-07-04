@@ -1,6 +1,8 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ShieldAlert } from "lucide-react";
+// 🛡️ Ensure these are imported from wherever you keep your utils!
+import { API_URL, getAuthHeaders } from "../../lib/utils"; 
 import { useAdminData } from "../../components/admin/hooks/useAdminData";
 import { ToastAlert, ConfirmModal } from "../../components/admin/layout/AdminModals";
 import AdminSidebar from "../../components/admin/layout/AdminSidebar";
@@ -12,12 +14,31 @@ import ActiveOrdersView from "../../components/admin/views/ActiveOrdersView";
 import FinanceHistoryView from "../../components/admin/views/FinanceHistoryView";
 import InquiriesView from "../../components/admin/views/InquiriesView";
 import OperatorsMgmtView from "../../components/admin/views/OperatorsMgmtView";
-
-// Imported the two new views we just created
 import ClientsView from "../../components/admin/views/ClientsView";
 import SuppliersView from "../../components/admin/views/SuppliersView";
 
 export default function AdminDashboard() {
+  const [dashboardStats, setDashboardStats] = useState({
+    totalRevenue: 0,
+    activeDeployments: 0,
+    completedContracts: 0,
+    avgRating: '0.0'
+  });
+
+  const fetchStats = async () => {
+    try {
+      const res = await fetch(`${API_URL}/rentals/stats`, {
+        headers: getAuthHeaders()
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setDashboardStats(data);
+      }
+    } catch (err) {
+      console.error("Failed to load stats", err);
+    }
+  };
+
   const [toast, setToast] = useState({ show: false, message: '', type: 'info' as 'info'|'success'|'error' });
   const showToast = (msg: string, type: 'info'|'success'|'error' = 'info') => {
     setToast({ show: true, message: msg, type });
@@ -25,6 +46,13 @@ export default function AdminDashboard() {
   };
 
   const { auth, data, ratings, login, logout, apiAction } = useAdminData(showToast);
+
+  // 🛡️ NEW: Trigger the stats fetch as soon as the admin is authenticated!
+  useEffect(() => {
+    if (auth.isAuthenticated) {
+      fetchStats();
+    }
+  }, [auth.isAuthenticated]);
   
   const [activeTab, setActiveTab] = useState('health');
   const [searchTerm, setSearchTerm] = useState('');
@@ -69,17 +97,16 @@ export default function AdminDashboard() {
         <AdminHeader searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
         
         <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
-          {activeTab === 'health' && <AnalyticsView orders={data.rentals} suppliers={data.users.filter((u:any)=>u.role==='SUPPLIER')} clients={data.users.filter((u:any)=>u.role==='CLIENT')} ratings={ratings} />}
+          {/* 🛡️ FIX: Replaced the heavy 'orders' and 'ratings' math with our new lightweight 'stats' prop! */}
+          {activeTab === 'health' && <AnalyticsView stats={dashboardStats} orders={data.rentals} suppliers={data.users.filter((u:any)=>u.role==='SUPPLIER')} clients={data.users.filter((u:any)=>u.role==='CLIENT')} />}
           {activeTab === 'inquiries' && <InquiriesView inquiries={data.inquiries} apiAction={apiAction} confirmBox={confirmAction} />}
           {activeTab === 'access' && <AccessMgmtView usersList={data.users} apiAction={apiAction} currentUser={auth.adminUser}/>}
           {activeTab === 'fleet' && <FleetMgmtView fleet={data.fleet} suppliers={data.users.filter((u:any)=>u.role==='SUPPLIER')} searchTerm={safeSearch} apiAction={apiAction} confirmBox={confirmAction} />}
           {activeTab === 'orders' && <ActiveOrdersView orders={data.rentals} searchTerm={safeSearch} apiAction={apiAction} confirmBox={confirmAction} />}
           {activeTab === 'operators' && <OperatorsMgmtView operators={data.operators} confirmBox={confirmAction} apiAction={apiAction} showToast={showToast} />}
           {activeTab === 'history' && <FinanceHistoryView orders={data.rentals} searchTerm={safeSearch} apiAction={apiAction} confirmBox={confirmAction} showToast={showToast} />}
-          
-        {/* Find these two lines and replace them: */}
-{activeTab === 'clients' && <ClientsView clients={data.users.filter((u: any) => u.role === 'CLIENT')} rentalsList={data.rentals} searchTerm={safeSearch} apiAction={apiAction} confirmBox={confirmAction} />}
-{activeTab === 'suppliers' && <SuppliersView suppliers={data.users.filter((u: any) => u.role === 'SUPPLIER')} rentalsList={data.rentals} searchTerm={safeSearch} apiAction={apiAction} confirmBox={confirmAction} />}
+          {activeTab === 'clients' && <ClientsView clients={data.users.filter((u: any) => u.role === 'CLIENT')} rentalsList={data.rentals} searchTerm={safeSearch} apiAction={apiAction} confirmBox={confirmAction} />}
+          {activeTab === 'suppliers' && <SuppliersView suppliers={data.users.filter((u: any) => u.role === 'SUPPLIER')} rentalsList={data.rentals} searchTerm={safeSearch} apiAction={apiAction} confirmBox={confirmAction} />}
         </div>
       </main>
     </div>
