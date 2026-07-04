@@ -3,8 +3,8 @@ import React, { useState, useEffect } from "react";
 import { X, HardHat, Camera } from "lucide-react";
 import { API_URL, getAuthHeaders } from "../lib/utils";
 
-export default function OperatorListingModal({ isOpen, itemToEdit, onClose, onSuccess, showToast }: any) {
-  // 🛡️ FIX: Added 'status' to the initial state
+// 🛡️ Notice we added `apiAction` to the props here!
+export default function OperatorListingModal({ isOpen, itemToEdit, onClose, onSuccess, showToast, apiAction }: any) {
   const [formData, setFormData] = useState({ 
     name: '', expertise: 'Heavy Machinery Operator', contactNumber: '', licenses: '', profileImageUrl: '', status: 'ACTIVE' 
   });
@@ -18,7 +18,7 @@ export default function OperatorListingModal({ isOpen, itemToEdit, onClose, onSu
           contactNumber: itemToEdit.contactNumber || '',
           licenses: itemToEdit.licenses || '',
           profileImageUrl: itemToEdit.profileImageUrl || '',
-          status: itemToEdit.status || 'ACTIVE' // 🛡️ FIX: Pre-fill the status
+          status: itemToEdit.status || 'ACTIVE' 
         });
       } else {
         setFormData({ name: '', expertise: 'Heavy Machinery Operator', contactNumber: '', licenses: '', profileImageUrl: '', status: 'ACTIVE' });
@@ -39,20 +39,39 @@ export default function OperatorListingModal({ isOpen, itemToEdit, onClose, onSu
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      const endpoint = itemToEdit ? `${API_URL}/operators/${itemToEdit.id}` : `${API_URL}/operators`;
-      const method = itemToEdit ? "PATCH" : "POST";
+    
+    const endpoint = itemToEdit ? `/operators/${itemToEdit.id}` : `/operators`;
+    const method = itemToEdit ? "PATCH" : "POST";
 
-      const res = await fetch(endpoint, {
-        method,
-        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        credentials: "include",
-        body: JSON.stringify(formData)
-      });
-      if (!res.ok) throw new Error(`Failed to ${itemToEdit ? 'update' : 'add'} operator.`);
-      onSuccess();
-    } catch (err: any) {
-      showToast(err.message || "Error saving operator.", "error");
+    // 🛡️ CRITICAL FIX: Use apiAction to handle the network request, the toasts, AND the table refresh!
+    if (apiAction) {
+      const success = await apiAction(
+        endpoint, 
+        method, 
+        formData, 
+        `Operator ${itemToEdit ? 'updated' : 'added'} successfully!`
+      );
+      if (success) onSuccess();
+    } else {
+      // Fallback just in case this modal is opened from a page without apiAction
+      try {
+        const res = await fetch(`${API_URL}${endpoint}`, {
+          method,
+          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+          body: JSON.stringify(formData)
+        });
+        
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.message || "Failed to save operator.");
+        }
+        
+        if (showToast) showToast(`Operator ${itemToEdit ? 'updated' : 'added'} successfully!`, "success");
+        onSuccess();
+      } catch (err: any) {
+        if (showToast) showToast(err.message, "error");
+        else alert(err.message);
+      }
     }
   };
 
@@ -82,7 +101,6 @@ export default function OperatorListingModal({ isOpen, itemToEdit, onClose, onSu
           
           <div><label className="block text-xs font-black uppercase mb-1">Primary Role</label><select className="w-full px-4 py-3 bg-gray-50 border rounded-xl outline-none" value={formData.expertise} onChange={e => setFormData({...formData, expertise: e.target.value})}><option value="Heavy Machinery Operator">Heavy Machinery Operator</option><option value="Transport & Truck Driver">Transport & Truck Driver</option><option value="Crane & Lifting Specialist">Crane & Lifting Specialist</option></select></div>
           
-          {/* 🛡️ NEW: Status Dropdown */}
           <div>
             <label className="block text-xs font-black uppercase mb-1">Status</label>
             <select className="w-full px-4 py-3 bg-gray-50 border rounded-xl outline-none" value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})}>
