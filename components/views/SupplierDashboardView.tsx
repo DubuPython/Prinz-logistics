@@ -23,14 +23,17 @@ export default function SupplierDashboardView({
   const [isUploading, setIsUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  // 🛡️ Safe checks and accurate order filtering
-// ✅ NEW LOGIC: The backend already filtered it! 
-  const myOrders = rentalsList;
+ // 🛡️ FIX: Safely extract the array from the new paginated backend format!
+  const safeRentalsList = Array.isArray(rentalsList) ? rentalsList : (rentalsList?.data || []);
+
+  // ✅ NEW LOGIC: Use the safely extracted array
+  const myOrders = safeRentalsList;
   const activeOrders = myOrders.filter((r: any) => r.status !== 'COMPLETED' && r.status !== 'CANCELLED');
   const historyOrders = myOrders.filter((r: any) => r.status === 'COMPLETED' || r.status === 'CANCELLED');
+  
+  // (We assume equipment and operators aren't paginated yet, so these stay the same)
   const myFleet = equipmentList.filter((e: any) => e.supplier?.id === user?.id);
   const myOperators = operatorsList.filter((op: any) => op.supplier?.id === user?.id);
-
   const completedOrders = historyOrders.filter((r: any) => r.status === 'COMPLETED');
   const totalRevenue = completedOrders.reduce((sum: number, r: any) => sum + Number(r.totalCost || 0), 0);
   const ratedOrders = completedOrders.filter((r: any) => r.supplierRating > 0);

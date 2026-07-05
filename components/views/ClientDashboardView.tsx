@@ -10,9 +10,12 @@ export default function ClientDashboardView({ user, rentalsList = [], onTrackOrd
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Data Filtering
-  // ✅ NEW LOGIC: The backend already filtered it! 
-  const myOrders = rentalsList;
+ // // Data Filtering
+  // 🛡️ FIX: Safely extract the array from the new paginated backend format!
+  const safeRentalsList = Array.isArray(rentalsList) ? rentalsList : (rentalsList?.data || []);
+  
+  // ✅ NEW LOGIC: The backend already filtered it!
+  const myOrders = safeRentalsList;
   const activeOrders = myOrders.filter((r: any) => r.status !== 'COMPLETED' && r.status !== 'CANCELLED');
   const historyOrders = myOrders.filter((r: any) => r.status === 'COMPLETED' || r.status === 'CANCELLED');
 
