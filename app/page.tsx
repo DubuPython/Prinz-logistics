@@ -189,8 +189,9 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#0f172a] font-sans text-gray-900 dark:text-gray-100 transition-colors duration-300 flex flex-col relative">
+      {/* 🛡️ Z-INDEX FIX: z-[9999] and pointer-events-none added to Toast Container */}
       {toast.show && (
-        <div className={`fixed top-24 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-full text-white font-black text-sm shadow-2xl flex items-center gap-2 animate-fade-in ${toast.type === 'error' ? 'bg-red-600' : 'bg-[#111827] dark:bg-white dark:text-gray-900 border border-gray-700 dark:border-gray-200'}`}>
+        <div className={`fixed top-24 left-1/2 -translate-x-1/2 z-[9999] pointer-events-none px-6 py-3 rounded-full text-white font-black text-sm shadow-2xl flex items-center gap-2 animate-fade-in ${toast.type === 'error' ? 'bg-red-600' : 'bg-[#111827] dark:bg-white dark:text-gray-900 border border-gray-700 dark:border-gray-200'}`}>
           {toast.type === 'error' ? <AlertTriangle size={18}/> : <CheckCircle2 size={18} className="text-orange-500"/>} {toast.msg}
         </div>
       )}
@@ -274,8 +275,23 @@ export default function Home() {
       <DigitalReceiptModal receipt={viewingReceipt} onClose={() => setViewingReceipt(null)} />
       <ProfileSettingsModal isOpen={profileModal} user={user} onClose={() => setProfileModal(false)} onSuccess={(updatedUser: any) => { setUser(updatedUser); localStorage.setItem('prinz_user', JSON.stringify(updatedUser)); setProfileModal(false); showToast("Profile updated.", "success"); }} showToast={showToast} />
       
-      {/* 🛡️ CRITICAL FIX: Ensures onUpdateCartItem is passed down to Cart Checkout! */}
-      <RentCheckoutModal isOpen={!!rentingItem} item={rentingItem} user={user} operatorsList={operatorsList} onClose={() => {setRentingItem(null); setCartEditIndex(null); setCartEditData(null);}} onAddToCart={handleAddToCart} onUpdateCartItem={handleUpdateCartItem} editIndex={cartEditIndex} editData={cartEditData} showToast={showToast} />
+      {/* 🛡️ GUEST INTERCEPT FIX: Passed onRequireAuth to trigger the AuthModal from Checkout */}
+      <RentCheckoutModal 
+        isOpen={!!rentingItem} 
+        item={rentingItem} 
+        user={user} 
+        operatorsList={operatorsList} 
+        onClose={() => {setRentingItem(null); setCartEditIndex(null); setCartEditData(null);}} 
+        onAddToCart={handleAddToCart} 
+        onUpdateCartItem={handleUpdateCartItem} 
+        editIndex={cartEditIndex} 
+        editData={cartEditData} 
+        showToast={showToast} 
+        onRequireAuth={() => {
+          setRentingItem(null);
+          setAuthModal({ isOpen: true, isLogin: true });
+        }}
+      />
       <CartCheckoutModal isOpen={cartModalOpen} cartItems={cartItems} user={user} onClose={() => setCartModalOpen(false)} onRemoveItem={handleRemoveFromCart} onEditItem={handleEditCartItem} showToast={showToast} />
     </div>
   );

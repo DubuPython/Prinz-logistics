@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { X, Calendar, MapPin, Truck, CreditCard, HardHat, Info, ShoppingCart, CheckCircle2, Phone, FileCheck } from "lucide-react";
 import { API_URL, getAuthHeaders } from "../lib/utils";
 
-export default function RentCheckoutModal({ isOpen, item, user, onClose, onAddToCart, onUpdateCartItem, editIndex, editData, showToast, operatorsList = [] }: any) {
+export default function RentCheckoutModal({ isOpen, item, user, onClose, onAddToCart, onUpdateCartItem, editIndex, editData, showToast, operatorsList = [], onRequireAuth }: any) {
   const getToday = () => new Date().toISOString().split('T')[0];
 
   const [checkoutStep, setCheckoutStep] = useState<'FORM' | 'PAYMONGO'>('FORM');
@@ -45,10 +45,38 @@ export default function RentCheckoutModal({ isOpen, item, user, onClose, onAddTo
   const vat = (basePrice + operatorFee) * 0.12;
   const total = basePrice + operatorFee + vat;
 
-  // 🛡️ LIVE PAYMONGO API GATEWAY CONTEXT SYNC (Utilizes backend /payments/checkout flow architecture)
+  // 🛡️ THE VALIDATION ENGINE
+  const validateForm = () => {
+    // Guest Intercept
+    if (!user) {
+      showToast("Please log in or create an account to continue.", "error");
+      if (onRequireAuth) onRequireAuth();
+      return false;
+    }
+    // Location Check
+    if (!formData.deliveryLocation || formData.deliveryLocation.trim() === "") {
+       showToast("Please insert a site location before adding to cart or purchasing.", "error");
+       return false;
+    }
+    // Date Checks
+    if (!formData.startDate || !formData.endDate) {
+       showToast("Invalid dates. Please check your deployment and return dates.", "error");
+       return false;
+    }
+    if (new Date(formData.startDate) > new Date(formData.endDate)) {
+       showToast("Invalid dates. Return date cannot be before deployment date.", "error");
+       return false;
+    }
+    // Operator Check
+    if (formData.needOperator && !selectedOpId) {
+       showToast("Please choose an operator for this equipment.", "error");
+       return false;
+    }
+    return true;
+  };
+
   const handleRealPayMongoCheckout = async () => {
-    if (!formData.startDate || !formData.endDate || !formData.deliveryLocation) return showToast("Please complete coordinates and dates.", "error");
-    if (formData.needOperator && !selectedOpId) return showToast("Please select an operator.", "error");
+    if (!validateForm()) return;
     
     setCheckoutStep('PAYMONGO');
 
@@ -91,8 +119,7 @@ export default function RentCheckoutModal({ isOpen, item, user, onClose, onAddTo
   };
 
   const handleCartAdd = () => {
-    if (!formData.startDate || !formData.endDate || !formData.deliveryLocation) return showToast("Complete deployment details.", "error");
-    if (formData.needOperator && !selectedOpId) return showToast("Select an available operator.", "error");
+    if (!validateForm()) return;
     
     const cartPayload = {
       equipment: item, supplier: item.supplier, startDate: formData.startDate, endDate: formData.endDate,
@@ -135,7 +162,8 @@ export default function RentCheckoutModal({ isOpen, item, user, onClose, onAddTo
                   <div><label className="block text-xs font-black uppercase tracking-widest mb-2 flex items-center gap-1"><Calendar size={12}/> Return Date</label><input type="date" className="w-full px-4 py-3 bg-gray-50 border rounded-xl outline-none font-bold" value={formData.endDate} onChange={e => setFormData({...formData, endDate: e.target.value})} /></div>
                 </div>
 
-                <label className="block text-xs font-black uppercase tracking-widest mb-2 flex items-center gap-1"><MapPin size={12}/> Target Coordinates</label>
+                {/* UI COPY FIX: Target Coordinates -> Site Location */}
+                <label className="block text-xs font-black uppercase tracking-widest mb-2 flex items-center gap-1"><MapPin size={12}/> Site Location</label>
                 <div className="w-full h-72 bg-gray-200 rounded-xl overflow-hidden mb-3 relative border border-gray-200">
                    {formData.deliveryLocation ? (
                       <iframe width="100%" height="100%" frameBorder="0" scrolling="yes" marginHeight={0} marginWidth={0} src={`https://maps.google.com/maps?q=${encodeURIComponent(formData.deliveryLocation)}&t=&z=14&ie=UTF8&iwloc=&output=embed`} className="absolute inset-0 border-0" />
@@ -169,8 +197,9 @@ export default function RentCheckoutModal({ isOpen, item, user, onClose, onAddTo
                 <button type="button" onClick={handleCartAdd} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-900 py-4 rounded-xl font-black uppercase tracking-widest transition flex items-center justify-center gap-2 text-xs">
                   <ShoppingCart size={18} /> {editData ? 'Update Cart Item' : 'Add to Cart'}
                 </button>
+                {/* UI COPY FIX: PayMongo Escrow -> Pay Now */}
                 <button type="button" onClick={handleRealPayMongoCheckout} className="flex-1 bg-orange-600 hover:bg-orange-700 text-white py-4 rounded-xl font-black uppercase tracking-widest shadow-lg transition flex items-center justify-center gap-2 text-xs">
-                  <CreditCard size={18} /> PayMongo Escrow
+                  <CreditCard size={18} /> Pay Now
                 </button>
               </div>
             </div>

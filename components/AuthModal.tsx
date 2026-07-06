@@ -51,7 +51,7 @@ export default function AuthModal({ isOpen, initialIsLogin, onClose, onSuccess }
        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          credentials: "include", // 🛡️ CRITICAL: Allows the browser to accept the secure cookie
+          credentials: "include", 
           body: JSON.stringify({ email: authForm.email, passwordHash: authForm.password })
         });
         
@@ -66,7 +66,10 @@ export default function AuthModal({ isOpen, initialIsLogin, onClose, onSuccess }
       }
     } else {
       if (!isPasswordStrong) return setErrorMsg("Please ensure your password meets all security requirements.");
+      
+      // 🛡️ SPECIFIC VALIDATION: Check password match early
       if (!passwordsMatch) return setErrorMsg("Passwords do not match.");
+      
       const phPhoneRegex = /^(09|\+639)\d{9}$/;
       if (!phPhoneRegex.test(authForm.contactNumber)) return setErrorMsg("Please enter a valid Philippine mobile number.");
 
@@ -89,8 +92,12 @@ export default function AuthModal({ isOpen, initialIsLogin, onClose, onSuccess }
           body: JSON.stringify(payload)
         });
 
-        if (registerRes.status === 409) throw new Error("This email or phone number is already registered.");
-        if (!registerRes.ok) throw new Error("Registration Failed.");
+        // 🛡️ SPECIFIC VALIDATION: Catch duplicates directly
+        if (registerRes.status === 409) throw new Error("Email or mobile number already used.");
+        if (!registerRes.ok) {
+           const errorData = await registerRes.json().catch(() => ({}));
+           throw new Error(errorData.message || "Email or mobile number already used.");
+        }
 
         const loginRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/login`, {
           method: "POST",
@@ -131,11 +138,10 @@ export default function AuthModal({ isOpen, initialIsLogin, onClose, onSuccess }
         <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-900 transition"><X size={24} /></button>
 
         <div className="w-16 h-16 bg-orange-500 rounded-2xl flex items-center justify-center text-white mx-auto shadow-lg mb-6"><Truck size={32} /></div>
-        <h2 className="text-center text-3xl font-black text-gray-900 dark:text-white mb-8">{isLogin ? 'Welcome Back' : 'Join the Network'}</h2>
+        <h2 className="text-center text-3xl font-black text-gray-900 dark:text-white mb-8">{isLogin ? 'Log in' : 'Create Account'}</h2>
 
         {errorMsg && <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-xl text-sm font-bold text-center border border-red-200">{errorMsg}</div>}
 
-        {/* CRITICAL FIX: suppressHydrationWarning added to prevent extension crashes */}
         <form suppressHydrationWarning onSubmit={handleAuthSubmit} className="space-y-5" autoComplete="off">
           
           {!isLogin && (
@@ -224,13 +230,13 @@ export default function AuthModal({ isOpen, initialIsLogin, onClose, onSuccess }
           )}
 
           <button type="submit" disabled={!isLogin && (!isPasswordStrong || !passwordsMatch)} className={`w-full py-4 font-black rounded-xl uppercase tracking-widest transition shadow-lg mt-4 ${(!isLogin && (!isPasswordStrong || !passwordsMatch)) ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-orange-600 hover:bg-orange-700 text-white shadow-orange-600/30'}`}>
-            {isLogin ? 'Establish Connection' : 'Create Account'}
+            {isLogin ? 'Log in' : 'Create Account'}
           </button>
         </form>
 
         <div className="mt-8 text-center">
           <button type="button" onClick={() => { setIsLogin(!isLogin); setErrorMsg(''); setAuthForm({ name: '', email: '', password: '', confirmPassword: '', contactNumber: '' }); }} className="text-sm font-bold text-gray-500 hover:text-orange-600 transition">
-            {isLogin ? "Need an account? Join the network" : "Already have an account? Sign in"}
+            {isLogin ? "Need an account? Sign up now." : "Already have an account? Log in."}
           </button>
         </div>
       </div>
